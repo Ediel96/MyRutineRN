@@ -2,8 +2,8 @@
 // Entry point - equivalente a MyRoutineApp.swift
 
 import React, {useEffect} from 'react';
-import {StatusBar, useColorScheme} from 'react-native';
-import {NavigationContainer} from '@react-navigation/native';
+import {StatusBar} from 'react-native';
+import {NavigationContainer, DarkTheme, DefaultTheme} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import './src/i18n';
@@ -12,15 +12,14 @@ import {useRoutinesStore} from './src/stores/routinesStore';
 import {useSettingsStore} from './src/stores/settingsStore';
 import {useAISettingsStore} from './src/stores/aiSettingsStore';
 import {setupNotificationChannel, requestNotificationPermission} from './src/services/notifications';
-import {colors} from './src/theme/AppTheme';
-import {AppThemeMode} from './src/types/enums';
+import {useTheme} from './src/theme/useTheme';
 
 function AppContent() {
-  const systemColorScheme = useColorScheme();
-  const {theme, refreshID} = useSettingsStore();
+  const {refreshID} = useSettingsStore();
   const {loadData: loadRoutines} = useRoutinesStore();
   const {loadSettings: loadAI} = useAISettingsStore();
   const {loadSettings} = useSettingsStore();
+  const {colors, isDark} = useTheme();
 
   useEffect(() => {
     // Initialize app
@@ -34,15 +33,24 @@ function AppContent() {
     init();
   }, []);
 
-  const isDark =
-    theme === AppThemeMode.dark ||
-    (theme === AppThemeMode.system && systemColorScheme === 'dark');
+  const navTheme = {
+    ...(isDark ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(isDark ? DarkTheme.colors : DefaultTheme.colors),
+      primary: colors.primary,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.textPrimary,
+      border: colors.border,
+      notification: colors.accentSecondary,
+    },
+  };
 
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={isDark ? colors.backgroundDark : colors.backgroundLight}
+        backgroundColor={colors.background}
       />
       <RootNavigator key={refreshID} />
     </NavigationContainer>

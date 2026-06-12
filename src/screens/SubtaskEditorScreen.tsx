@@ -1,10 +1,11 @@
 // src/screens/SubtaskEditorScreen.tsx
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TextInput, TouchableOpacity} from 'react-native';
+import {View, StyleSheet} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {colors, spacing, borderRadius} from '../theme/AppTheme';
+import {ScreenContainer, Card, TextField, Button} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 
 type Props = RootStackScreenProps<'SubtaskEditor'>;
@@ -13,6 +14,8 @@ export default function SubtaskEditorScreen() {
   const navigation = useNavigation();
   const route = useRoute<Props['route']>();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {addSubtask, updateSubtask, getSubtasksByEventId} = useRoutinesStore();
   const existingSubtask = route.params?.subtaskId ? getSubtasksByEventId(route.params.eventId).find(s => s.id === route.params.subtaskId) : null;
 
@@ -35,38 +38,31 @@ export default function SubtaskEditorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenContainer>
       <View style={styles.content}>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('subtask.title')}</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Subtask name" />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('subtask.detail')}</Text>
-          <TextInput style={styles.input} value={detail} onChangeText={setDetail} placeholder="Details (optional)" multiline />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('subtask.pomodoro_minutes')}</Text>
-          <TextInput style={styles.input} value={pomodoroMinutes} onChangeText={setPomodoroMinutes} placeholder="25" keyboardType="number-pad" />
-        </View>
+        <Card style={styles.field}>
+          <TextField label={t('subtask.title')} value={title} onChangeText={setTitle} placeholder="Subtask name" />
+        </Card>
+        <Card style={styles.field}>
+          <TextField label={t('subtask.detail')} value={detail} onChangeText={setDetail} placeholder="Details (optional)" multiline style={styles.multiline} />
+        </Card>
+        <Card style={styles.field}>
+          <TextField label={t('subtask.pomodoro_minutes')} value={pomodoroMinutes} onChangeText={setPomodoroMinutes} placeholder="25" keyboardType="number-pad" />
+        </Card>
       </View>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}><Text style={styles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}><Text style={styles.saveText}>{t('common.save')}</Text></TouchableOpacity>
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => navigation.goBack()} style={styles.footerButton} />
+        <Button title={t('common.save')} variant="primary" onPress={handleSave} style={styles.footerButton} />
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  content: {flex: 1, padding: spacing.lg},
-  field: {backgroundColor: colors.white, marginBottom: spacing.md, padding: spacing.lg, borderRadius: borderRadius.lg},
-  label: {fontSize: 14, fontWeight: '600', color: colors.gray600, marginBottom: spacing.sm},
-  input: {borderWidth: 1, borderColor: colors.gray300, borderRadius: borderRadius.md, padding: spacing.md, fontSize: 16},
-  footer: {flexDirection: 'row', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.gray200},
-  cancelButton: {flex: 1, padding: spacing.md, alignItems: 'center', backgroundColor: colors.gray100, borderRadius: borderRadius.md},
-  cancelText: {color: colors.textPrimaryLight, fontWeight: '600'},
-  saveButton: {flex: 1, padding: spacing.md, alignItems: 'center', backgroundColor: colors.primary, borderRadius: borderRadius.md},
-  saveText: {color: colors.white, fontWeight: '600'},
-});
+const createStyles = ({colors, spacing}: AppTheme) =>
+  StyleSheet.create({
+    content: {flex: 1, padding: spacing.lg},
+    field: {marginBottom: spacing.md},
+    multiline: {minHeight: 80, textAlignVertical: 'top'},
+    footer: {flexDirection: 'row', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border},
+    footerButton: {flex: 1},
+  });

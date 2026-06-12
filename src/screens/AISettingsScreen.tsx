@@ -1,15 +1,18 @@
 // src/screens/AISettingsScreen.tsx
 import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useAISettingsStore} from '../stores/aiSettingsStore';
-import {colors, spacing, borderRadius} from '../theme/AppTheme';
+import {ScreenContainer, Card, TextField, Button, Badge} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 
 type Props = RootStackScreenProps<'AISettings'>;
 
 export default function AISettingsScreen() {
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {selectedProvider, openAIKey, anthropicKey, loadSettings, setSelectedProvider, setOpenAIKey, setAnthropicKey} = useAISettingsStore();
   const [openaiInput, setOpenaiInput] = useState('');
   const [anthropicInput, setAnthropicInput] = useState('');
@@ -20,9 +23,9 @@ export default function AISettingsScreen() {
   const handleSaveAnthropic = () => { setAnthropicKey(anthropicInput); setAnthropicInput(''); };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.section}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Card style={styles.section}>
           <Text style={styles.sectionTitle}>{t('ai_settings.provider')}</Text>
           {[
             {id: 'builtin:anthropic', label: t('ai_settings.anthropic'), emoji: '🤖'},
@@ -34,50 +37,50 @@ export default function AISettingsScreen() {
               {selectedProvider === p.id && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
           ))}
-        </View>
+        </Card>
 
-        <View style={styles.section}>
+        <Card style={styles.section}>
           <Text style={styles.sectionTitle}>API Keys</Text>
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>OpenAI Key (for Whisper)</Text>
-            <TextInput style={styles.input} value={openaiInput} onChangeText={setOpenaiInput} placeholder="sk-..." secureTextEntry />
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveOpenAI}><Text style={styles.saveText}>Save</Text></TouchableOpacity>
-            {openAIKey && <Text style={styles.savedIndicator}>✓ Saved</Text>}
+            <TextField label="OpenAI Key (for Whisper)" value={openaiInput} onChangeText={setOpenaiInput} placeholder="sk-..." secureTextEntry />
+            <View style={styles.fieldFooter}>
+              <Button title="Save" onPress={handleSaveOpenAI} variant="secondary" fullWidth={false} style={styles.saveButton} />
+              {openAIKey && <Badge label="✓ Saved" color={theme.colors.success} />}
+            </View>
           </View>
           <View style={styles.field}>
-            <Text style={styles.fieldLabel}>Anthropic Key (for Claude)</Text>
-            <TextInput style={styles.input} value={anthropicInput} onChangeText={setAnthropicInput} placeholder="sk-ant-..." secureTextEntry />
-            <TouchableOpacity style={styles.saveButton} onPress={handleSaveAnthropic}><Text style={styles.saveText}>Save</Text></TouchableOpacity>
-            {anthropicKey && <Text style={styles.savedIndicator}>✓ Saved</Text>}
+            <TextField label="Anthropic Key (for Claude)" value={anthropicInput} onChangeText={setAnthropicInput} placeholder="sk-ant-..." secureTextEntry />
+            <View style={styles.fieldFooter}>
+              <Button title="Save" onPress={handleSaveAnthropic} variant="secondary" fullWidth={false} style={styles.saveButton} />
+              {anthropicKey && <Badge label="✓ Saved" color={theme.colors.success} />}
+            </View>
           </View>
-        </View>
+        </Card>
 
-        <View style={styles.infoBox}>
+        <Card style={styles.infoBox} variant="surfaceAlt">
           <Text style={styles.infoTitle}>ℹ️ Note</Text>
           <Text style={styles.infoText}>API keys are stored securely in the device keychain and never sent to our servers.</Text>
-        </View>
+        </Card>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  scrollView: {flex: 1},
-  section: {backgroundColor: colors.white, marginBottom: spacing.md, padding: spacing.lg},
-  sectionTitle: {fontSize: 14, fontWeight: '600', color: colors.gray500, marginBottom: spacing.md, textTransform: 'uppercase'},
-  providerOption: {flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: borderRadius.md, marginBottom: spacing.sm, backgroundColor: colors.gray50},
-  providerOptionActive: {backgroundColor: colors.primary + '15', borderWidth: 1, borderColor: colors.primary},
-  providerEmoji: {fontSize: 24, marginRight: spacing.md},
-  providerLabel: {flex: 1, fontSize: 16},
-  checkmark: {color: colors.primary, fontSize: 18},
-  field: {marginBottom: spacing.lg},
-  fieldLabel: {fontSize: 14, fontWeight: '600', color: colors.gray600, marginBottom: spacing.sm},
-  input: {borderWidth: 1, borderColor: colors.gray300, borderRadius: borderRadius.md, padding: spacing.md, fontSize: 14},
-  saveButton: {backgroundColor: colors.primary, padding: spacing.md, borderRadius: borderRadius.md, alignItems: 'center', marginTop: spacing.sm},
-  saveText: {color: colors.white, fontWeight: '600'},
-  savedIndicator: {color: colors.success, fontSize: 12, marginTop: spacing.xs},
-  infoBox: {backgroundColor: colors.info + '15', margin: spacing.lg, padding: spacing.lg, borderRadius: borderRadius.lg},
-  infoTitle: {fontWeight: '600', marginBottom: spacing.xs},
-  infoText: {fontSize: 14, color: colors.gray600},
-});
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
+  StyleSheet.create({
+    scrollView: {flex: 1},
+    scrollContent: {paddingVertical: spacing.lg, paddingBottom: spacing.xxl},
+    section: {marginHorizontal: spacing.lg, marginBottom: spacing.md},
+    sectionTitle: {fontSize: typography.xs + 1, fontWeight: typography.semibold, color: colors.textSecondary, marginBottom: spacing.md, textTransform: 'uppercase', letterSpacing: 0.5},
+    providerOption: {flexDirection: 'row', alignItems: 'center', padding: spacing.md, borderRadius: radius.lg, marginBottom: spacing.sm, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border},
+    providerOptionActive: {backgroundColor: colors.primary + '1f', borderColor: colors.primary},
+    providerEmoji: {fontSize: 24, marginRight: spacing.md},
+    providerLabel: {flex: 1, fontSize: typography.lg, color: colors.textPrimary},
+    checkmark: {color: colors.primary, fontSize: typography.xl, fontWeight: typography.bold},
+    field: {marginBottom: spacing.lg},
+    fieldFooter: {flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm},
+    saveButton: {paddingHorizontal: spacing.xl},
+    infoBox: {marginHorizontal: spacing.lg},
+    infoTitle: {fontWeight: typography.semibold, marginBottom: spacing.xs, color: colors.textPrimary},
+    infoText: {fontSize: typography.md, color: colors.textSecondary},
+  });

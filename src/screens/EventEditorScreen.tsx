@@ -1,10 +1,11 @@
 // src/screens/EventEditorScreen.tsx
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, ScrollView, TextInput, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {colors, spacing, borderRadius} from '../theme/AppTheme';
+import {ScreenContainer, Card, TextField, Button} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 import {EventCategory, WeekDay} from '../types/enums';
 import {EVENT_CATEGORY_CONFIG} from '../types/enums';
@@ -15,6 +16,8 @@ export default function EventEditorScreen() {
   const navigation = useNavigation();
   const route = useRoute<Props['route']>();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {addEvent, updateEvent, getEventById} = useRoutinesStore();
   const existingEvent = route.params?.eventId ? getEventById(route.params.eventId) : null;
 
@@ -44,25 +47,21 @@ export default function EventEditorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('routine.title')}</Text>
-          <TextInput style={styles.input} value={title} onChangeText={setTitle} placeholder="Routine name" />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('routine.description')}</Text>
-          <TextInput style={styles.input} value={description} onChangeText={setDescription} placeholder="Description" multiline />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('routine.purpose')}</Text>
-          <TextInput style={styles.input} value={purpose} onChangeText={setPurpose} placeholder="Why is this important?" />
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('routine.objectives')}</Text>
-          <TextInput style={styles.input} value={objectives} onChangeText={setObjectives} placeholder="What do you want to achieve?" />
-        </View>
-        <View style={styles.field}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <Card style={styles.field}>
+          <TextField label={t('routine.title')} value={title} onChangeText={setTitle} placeholder="Routine name" />
+        </Card>
+        <Card style={styles.field}>
+          <TextField label={t('routine.description')} value={description} onChangeText={setDescription} placeholder="Description" multiline style={styles.multiline} />
+        </Card>
+        <Card style={styles.field}>
+          <TextField label={t('routine.purpose')} value={purpose} onChangeText={setPurpose} placeholder="Why is this important?" />
+        </Card>
+        <Card style={styles.field}>
+          <TextField label={t('routine.objectives')} value={objectives} onChangeText={setObjectives} placeholder="What do you want to achieve?" />
+        </Card>
+        <Card style={styles.field}>
           <Text style={styles.label}>{t('routine.day')}</Text>
           <View style={styles.chipGroup}>
             {Object.values(WeekDay).map(d => (
@@ -71,63 +70,65 @@ export default function EventEditorScreen() {
               </TouchableOpacity>
             ))}
           </View>
-        </View>
-        <View style={styles.field}>
+        </Card>
+        <Card style={styles.field}>
           <Text style={styles.label}>{t('routine.start_time')} / {t('routine.end_time')}</Text>
           <View style={styles.timeRow}>
-            <TextInput style={[styles.input, styles.timeInput]} value={startTime} onChangeText={setStartTime} placeholder="09:00" />
-            <Text>-</Text>
-            <TextInput style={[styles.input, styles.timeInput]} value={endTime} onChangeText={setEndTime} placeholder="10:00" />
+            <TextField value={startTime} onChangeText={setStartTime} placeholder="09:00" containerStyle={styles.timeInput} />
+            <Text style={styles.timeSeparator}>-</Text>
+            <TextField value={endTime} onChangeText={setEndTime} placeholder="10:00" containerStyle={styles.timeInput} />
           </View>
-        </View>
-        <View style={styles.field}>
+        </Card>
+        <Card style={styles.field}>
           <Text style={styles.label}>{t('routine.category')}</Text>
           <View style={styles.chipGroup}>
             {Object.values(EventCategory).map(c => {
               const config = EVENT_CATEGORY_CONFIG[c];
+              const active = category === c;
               return (
-                <TouchableOpacity key={c} style={[styles.chip, category === c && styles.chipActive, {borderColor: config?.color}]} onPress={() => setCategory(c)}>
-                  <Text style={[styles.chipText, category === c && styles.chipTextActive]}>{config?.emoji} {config?.displayName}</Text>
+                <TouchableOpacity key={c} style={[styles.chip, active && {backgroundColor: config?.color, borderColor: config?.color}]} onPress={() => setCategory(c)}>
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{config?.emoji} {config?.displayName}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
-        <View style={styles.field}>
-          <TouchableOpacity style={styles.toggleRow} onPress={() => setAlarmEnabled(!alarmEnabled)}>
+        </Card>
+        <Card style={styles.field}>
+          <View style={styles.toggleRow}>
             <Text style={styles.label}>{t('routine.alarm')}</Text>
-            <View style={[styles.toggle, alarmEnabled && styles.toggleActive]}><View style={styles.toggleThumb} /></View>
-          </TouchableOpacity>
-        </View>
+            <Switch
+              value={alarmEnabled}
+              onValueChange={setAlarmEnabled}
+              trackColor={{false: theme.colors.border, true: theme.colors.primary}}
+              thumbColor={theme.colors.white}
+            />
+          </View>
+        </Card>
       </ScrollView>
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.cancelButton} onPress={() => navigation.goBack()}><Text style={styles.cancelText}>{t('common.cancel')}</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}><Text style={styles.saveText}>{t('common.save')}</Text></TouchableOpacity>
+        <Button title={t('common.cancel')} variant="secondary" onPress={() => navigation.goBack()} style={styles.footerButton} />
+        <Button title={t('common.save')} variant="primary" onPress={handleSave} style={styles.footerButton} />
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  scrollView: {flex: 1},
-  field: {backgroundColor: colors.white, marginBottom: spacing.sm, padding: spacing.lg},
-  label: {fontSize: 14, fontWeight: '600', color: colors.gray600, marginBottom: spacing.sm},
-  input: {borderWidth: 1, borderColor: colors.gray300, borderRadius: borderRadius.md, padding: spacing.md, fontSize: 16},
-  chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs},
-  chip: {paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: borderRadius.md, backgroundColor: colors.gray100, borderWidth: 1, borderColor: colors.gray200},
-  chipActive: {backgroundColor: colors.primary, borderColor: colors.primary},
-  chipText: {fontSize: 12, color: colors.textPrimaryLight},
-  chipTextActive: {color: colors.white},
-  timeRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.md},
-  timeInput: {flex: 1},
-  toggleRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
-  toggle: {width: 50, height: 30, borderRadius: 15, backgroundColor: colors.gray300, justifyContent: 'center', paddingHorizontal: 2},
-  toggleActive: {backgroundColor: colors.primary, alignItems: 'flex-end'},
-  toggleThumb: {width: 26, height: 26, borderRadius: 13, backgroundColor: colors.white},
-  footer: {flexDirection: 'row', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.gray200},
-  cancelButton: {flex: 1, padding: spacing.md, alignItems: 'center', backgroundColor: colors.gray100, borderRadius: borderRadius.md},
-  cancelText: {color: colors.textPrimaryLight, fontWeight: '600'},
-  saveButton: {flex: 1, padding: spacing.md, alignItems: 'center', backgroundColor: colors.primary, borderRadius: borderRadius.md},
-  saveText: {color: colors.white, fontWeight: '600'},
-});
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
+  StyleSheet.create({
+    scrollView: {flex: 1},
+    scrollContent: {padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md},
+    field: {marginBottom: spacing.md},
+    label: {fontSize: typography.sm, fontWeight: typography.semibold, color: colors.textSecondary, marginBottom: spacing.sm},
+    multiline: {minHeight: 80, textAlignVertical: 'top'},
+    chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs},
+    chip: {paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border},
+    chipActive: {backgroundColor: colors.primary, borderColor: colors.primary},
+    chipText: {fontSize: typography.xs + 1, color: colors.textPrimary},
+    chipTextActive: {color: colors.white, fontWeight: typography.semibold},
+    timeRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.md},
+    timeInput: {flex: 1},
+    timeSeparator: {color: colors.textSecondary, fontSize: typography.lg},
+    toggleRow: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+    footer: {flexDirection: 'row', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border},
+    footerButton: {flex: 1},
+  });

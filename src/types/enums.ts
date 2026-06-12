@@ -17,7 +17,7 @@ export const EVENT_CATEGORY_CONFIG: Record<
 > = {
   [EventCategory.gym]: {
     emoji: '💪',
-    color: '#8B7FE8',
+    color: '#6C7FE0',
     isPomodoroSuitable: true,
     displayName: 'Gym',
   },
@@ -35,7 +35,7 @@ export const EVENT_CATEGORY_CONFIG: Record<
   },
   [EventCategory.cooking]: {
     emoji: '🍳',
-    color: '#F5A623',
+    color: '#FFAE7A',
     isPomodoroSuitable: false,
     displayName: 'Cooking',
   },
@@ -47,7 +47,7 @@ export const EVENT_CATEGORY_CONFIG: Record<
   },
   [EventCategory.work]: {
     emoji: '💼',
-    color: '#9B9B92',
+    color: '#9B95B5',
     isPomodoroSuitable: true,
     displayName: 'Work',
   },

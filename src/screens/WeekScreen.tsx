@@ -1,10 +1,11 @@
 // src/screens/WeekScreen.tsx
 import React, {useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity} from 'react-native';
+import {Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {colors, spacing} from '../theme/AppTheme';
+import {ScreenContainer, Card} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
 import {WeekDay} from '../types/enums';
 
@@ -15,23 +16,29 @@ type Props = TabScreenProps<'Week'>;
 export default function WeekScreen({}: Props) {
   const navigation = useNavigation();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {loadData, getEventsByDay} = useRoutinesStore();
 
   useEffect(() => { loadData(); }, []);
 
-  const dayKeys = Object.keys(WeekDay).filter(k => !isNaN(Number(k)));
   const today = new Date().getDay();
   const todayIndex = today === 0 ? 6 : today - 1;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{t('tabs.week')}</Text>
         {DAYS.map((day, index) => {
           const events = getEventsByDay(day);
+          const isToday = index === todayIndex;
           return (
-            <View key={day} style={[styles.daySection, index === todayIndex && styles.todaySection]}>
-              <Text style={[styles.dayName, index === todayIndex && styles.todayText]}>
+            <Card
+              key={day}
+              style={styles.daySection}
+              variant={isToday ? 'surfaceAlt' : 'surface'}
+              borderLeftColor={isToday ? theme.colors.primary : undefined}>
+              <Text style={[styles.dayName, isToday && styles.todayText]}>
                 {t(`weekdays.${day}`)}
               </Text>
               {events.length === 0 ? (
@@ -44,24 +51,24 @@ export default function WeekScreen({}: Props) {
                   </TouchableOpacity>
                 ))
               )}
-            </View>
+            </Card>
           );
         })}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  scrollView: {flex: 1},
-  title: {fontSize: 24, fontWeight: 'bold', color: colors.textPrimaryLight, padding: spacing.lg},
-  daySection: {paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.gray200},
-  todaySection: {backgroundColor: colors.primaryLight + '20'},
-  dayName: {fontSize: 16, fontWeight: '600', color: colors.textPrimaryLight, marginBottom: spacing.sm},
-  todayText: {color: colors.primary},
-  noEvents: {color: colors.gray400, fontStyle: 'italic'},
-  eventItem: {flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs},
-  eventTime: {fontSize: 12, color: colors.gray500, width: 50},
-  eventTitle: {fontSize: 14, color: colors.textPrimaryLight},
-});
+const createStyles = ({colors, spacing, typography}: AppTheme) =>
+  StyleSheet.create({
+    scrollView: {flex: 1},
+    scrollContent: {paddingBottom: spacing.xxl},
+    title: {fontSize: typography.title, fontWeight: typography.bold, color: colors.textPrimary, padding: spacing.lg},
+    daySection: {marginHorizontal: spacing.lg, marginBottom: spacing.md},
+    dayName: {fontSize: typography.lg, fontWeight: typography.semibold, color: colors.textPrimary, marginBottom: spacing.sm},
+    todayText: {color: colors.primary},
+    noEvents: {color: colors.textTertiary, fontStyle: 'italic'},
+    eventItem: {flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs},
+    eventTime: {fontSize: typography.sm, color: colors.textSecondary, width: 50},
+    eventTitle: {fontSize: typography.md, color: colors.textPrimary},
+  });

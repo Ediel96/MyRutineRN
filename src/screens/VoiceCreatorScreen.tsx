@@ -1,11 +1,12 @@
 // src/screens/VoiceCreatorScreen.tsx
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput, ActivityIndicator} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ActivityIndicator} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
 import {parseRoutineFromText} from '../services/aiParser';
-import {colors, spacing, borderRadius} from '../theme/AppTheme';
+import {ScreenContainer, Card, TextField, Button, GradientView} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 import {CreatorStage} from '../types/enums';
 import type {ParsedRoutine} from '../types/models';
@@ -15,6 +16,8 @@ type Props = RootStackScreenProps<'VoiceCreator'>;
 export default function VoiceCreatorScreen() {
   const navigation = useNavigation();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {addEvent, events} = useRoutinesStore();
   const [stage, setStage] = useState<CreatorStage>(CreatorStage.idle);
   const [mode, setMode] = useState<'voice' | 'text'>('text');
@@ -49,9 +52,9 @@ export default function VoiceCreatorScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenContainer>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}><Text style={styles.closeButton}>✕</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={theme.hitSlop}><Text style={styles.closeButton}>✕</Text></TouchableOpacity>
         <Text style={styles.title}>{t('voice.title')}</Text>
         <View style={styles.placeholder} />
       </View>
@@ -59,22 +62,48 @@ export default function VoiceCreatorScreen() {
       {stage === CreatorStage.idle && (
         <View style={styles.content}>
           <View style={styles.modeSelector}>
-            <TouchableOpacity style={[styles.modeButton, mode === 'text' && styles.modeButtonActive]} onPress={() => setMode('text')}>
-              <Text style={styles.modeEmoji}>💬</Text><Text>{t('voice.text_mode')}</Text>
+            <TouchableOpacity style={styles.modeButtonWrapper} onPress={() => setMode('text')}>
+              {mode === 'text' ? (
+                <GradientView variant="ai" style={styles.modeButton}>
+                  <Text style={styles.modeEmoji}>💬</Text><Text style={styles.modeTextActive}>{t('voice.text_mode')}</Text>
+                </GradientView>
+              ) : (
+                <View style={[styles.modeButton, styles.modeButtonInactive]}>
+                  <Text style={styles.modeEmoji}>💬</Text><Text style={styles.modeText}>{t('voice.text_mode')}</Text>
+                </View>
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.modeButton, mode === 'voice' && styles.modeButtonActive]} onPress={() => setMode('voice')}>
-              <Text style={styles.modeEmoji}>🎤</Text><Text>{t('voice.voice_mode')}</Text>
+            <TouchableOpacity style={styles.modeButtonWrapper} onPress={() => setMode('voice')}>
+              {mode === 'voice' ? (
+                <GradientView variant="ai" style={styles.modeButton}>
+                  <Text style={styles.modeEmoji}>🎤</Text><Text style={styles.modeTextActive}>{t('voice.voice_mode')}</Text>
+                </GradientView>
+              ) : (
+                <View style={[styles.modeButton, styles.modeButtonInactive]}>
+                  <Text style={styles.modeEmoji}>🎤</Text><Text style={styles.modeText}>{t('voice.voice_mode')}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
           {mode === 'text' ? (
             <View style={styles.inputContainer}>
-              <TextInput style={styles.textInput} value={text} onChangeText={setText} placeholder="Describe your routine... (e.g., 'I want to work out every morning at 7am')" multiline placeholderTextColor={colors.gray400} />
-              <TouchableOpacity style={styles.submitButton} onPress={handleTextSubmit}><Text style={styles.submitText}>Generate with AI</Text></TouchableOpacity>
+              <TextField
+                value={text}
+                onChangeText={setText}
+                placeholder="Describe your routine... (e.g., 'I want to work out every morning at 7am')"
+                multiline
+                style={styles.textInput}
+              />
+              <Button title="Generate with AI" onPress={handleTextSubmit} style={styles.submitButton} />
             </View>
           ) : (
             <View style={styles.voiceContainer}>
               <Text style={styles.voiceText}>Voice recording requires microphone permissions</Text>
-              <TouchableOpacity style={styles.recordButton}><Text style={styles.recordIcon}>🎤</Text></TouchableOpacity>
+              <TouchableOpacity>
+                <GradientView variant="ai" style={styles.recordButton}>
+                  <Text style={styles.recordIcon}>🎤</Text>
+                </GradientView>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -82,7 +111,7 @@ export default function VoiceCreatorScreen() {
 
       {stage === CreatorStage.processing && (
         <View style={styles.processingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.accentAI} />
           <Text style={styles.processingText}>{t('voice.processing')}</Text>
         </View>
       )}
@@ -92,13 +121,13 @@ export default function VoiceCreatorScreen() {
           <Text style={styles.previewTitle}>{t('voice.preview')}</Text>
           <Text style={styles.routineCount}>{t('voice.routine_count', {count: parsedRoutines.length})}</Text>
           {parsedRoutines.map((r, i) => (
-            <View key={i} style={styles.routineCard}>
+            <Card key={i} style={styles.routineCard}>
               <Text style={styles.routineTitle}>{r.nombre}</Text>
               <Text style={styles.routineDetail}>{r.descripcion}</Text>
               <Text style={styles.routineMeta}>⏰ {r.hora} | 📅 {r.dias.join(', ')} | 🏷️ {r.categoria}</Text>
-            </View>
+            </Card>
           ))}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveAll}><Text style={styles.saveText}>{t('voice.save_all')}</Text></TouchableOpacity>
+          <Button title={t('voice.save_all')} onPress={handleSaveAll} style={styles.saveButton} />
         </View>
       )}
 
@@ -106,44 +135,44 @@ export default function VoiceCreatorScreen() {
         <View style={styles.errorContainer}>
           <Text style={styles.errorIcon}>❌</Text>
           <Text style={styles.errorText}>{t(`voice.error_${error}`) || error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => setStage(CreatorStage.idle)}><Text>{t('voice.try_again')}</Text></TouchableOpacity>
+          <Button title={t('voice.try_again')} variant="secondary" onPress={() => setStage(CreatorStage.idle)} fullWidth={false} />
         </View>
       )}
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.gray200},
-  closeButton: {fontSize: 20, color: colors.gray500},
-  title: {fontSize: 18, fontWeight: '600'},
-  placeholder: {width: 20},
-  content: {flex: 1, padding: spacing.lg},
-  modeSelector: {flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl},
-  modeButton: {flex: 1, padding: spacing.lg, alignItems: 'center', backgroundColor: colors.gray100, borderRadius: borderRadius.lg},
-  modeButtonActive: {backgroundColor: colors.primary},
-  modeEmoji: {fontSize: 32, marginBottom: spacing.sm},
-  inputContainer: {flex: 1},
-  textInput: {flex: 1, backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.lg, fontSize: 16, textAlignVertical: 'top'},
-  submitButton: {backgroundColor: colors.primary, padding: spacing.lg, borderRadius: borderRadius.md, alignItems: 'center', marginTop: spacing.md},
-  submitText: {color: colors.white, fontWeight: '600'},
-  voiceContainer: {flex: 1, alignItems: 'center', justifyContent: 'center'},
-  voiceText: {color: colors.gray500, marginBottom: spacing.xl},
-  recordButton: {width: 80, height: 80, borderRadius: 40, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center'},
-  recordIcon: {fontSize: 32},
-  processingContainer: {flex: 1, alignItems: 'center', justifyContent: 'center'},
-  processingText: {marginTop: spacing.lg, color: colors.gray600},
-  previewTitle: {fontSize: 20, fontWeight: 'bold', marginBottom: spacing.sm},
-  routineCount: {color: colors.gray500, marginBottom: spacing.lg},
-  routineCard: {backgroundColor: colors.white, padding: spacing.lg, borderRadius: borderRadius.lg, marginBottom: spacing.md},
-  routineTitle: {fontSize: 16, fontWeight: '600'},
-  routineDetail: {color: colors.gray600, marginTop: spacing.xs},
-  routineMeta: {color: colors.gray500, marginTop: spacing.sm, fontSize: 12},
-  saveButton: {backgroundColor: colors.success, padding: spacing.lg, borderRadius: borderRadius.md, alignItems: 'center'},
-  saveText: {color: colors.white, fontWeight: '600'},
-  errorContainer: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl},
-  errorIcon: {fontSize: 48, marginBottom: spacing.lg},
-  errorText: {textAlign: 'center', color: colors.error, marginBottom: spacing.lg},
-  retryButton: {backgroundColor: colors.gray100, padding: spacing.md, borderRadius: borderRadius.md},
-});
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
+  StyleSheet.create({
+    header: {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderBottomWidth: 1, borderBottomColor: colors.border},
+    closeButton: {fontSize: typography.xxl, color: colors.textSecondary},
+    title: {fontSize: typography.xl, fontWeight: typography.semibold, color: colors.textPrimary},
+    placeholder: {width: 24},
+    content: {flex: 1, padding: spacing.lg},
+    modeSelector: {flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl},
+    modeButtonWrapper: {flex: 1},
+    modeButton: {padding: spacing.lg, alignItems: 'center', borderRadius: radius.xl},
+    modeButtonInactive: {backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border},
+    modeEmoji: {fontSize: 32, marginBottom: spacing.sm},
+    modeText: {color: colors.textSecondary, fontWeight: typography.medium},
+    modeTextActive: {color: colors.white, fontWeight: typography.semibold},
+    inputContainer: {flex: 1},
+    textInput: {flex: 1, minHeight: 160, textAlignVertical: 'top'},
+    submitButton: {marginTop: spacing.md},
+    voiceContainer: {flex: 1, alignItems: 'center', justifyContent: 'center'},
+    voiceText: {color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center'},
+    recordButton: {width: 88, height: 88, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
+    recordIcon: {fontSize: 32},
+    processingContainer: {flex: 1, alignItems: 'center', justifyContent: 'center'},
+    processingText: {marginTop: spacing.lg, color: colors.textSecondary},
+    previewTitle: {fontSize: typography.xxl, fontWeight: typography.bold, color: colors.textPrimary, marginBottom: spacing.sm},
+    routineCount: {color: colors.textSecondary, marginBottom: spacing.lg},
+    routineCard: {marginBottom: spacing.md},
+    routineTitle: {fontSize: typography.lg, fontWeight: typography.semibold, color: colors.textPrimary},
+    routineDetail: {color: colors.textSecondary, marginTop: spacing.xs},
+    routineMeta: {color: colors.textTertiary, marginTop: spacing.sm, fontSize: typography.sm},
+    saveButton: {marginTop: spacing.sm},
+    errorContainer: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl},
+    errorIcon: {fontSize: 48, marginBottom: spacing.lg},
+    errorText: {textAlign: 'center', color: colors.error, marginBottom: spacing.lg},
+  });

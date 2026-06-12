@@ -8,7 +8,7 @@ import {useTranslation} from 'react-i18next';
 import {Text, View, StyleSheet} from 'react-native';
 
 import type {RootStackParamList, TabParamList} from './types';
-import {colors} from '../theme/AppTheme';
+import {useTheme} from '../theme/useTheme';
 
 // Screens
 import TodayScreen from '../screens/TodayScreen';
@@ -29,23 +29,43 @@ import LogsScreen from '../screens/LogsScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
-const TabIcon: React.FC<{emoji: string; focused: boolean}> = ({emoji, focused}) => (
-  <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-    <Text style={styles.tabIconText}>{emoji}</Text>
-  </View>
-);
+const TabIcon: React.FC<{emoji: string; focused: boolean}> = ({emoji, focused}) => {
+  const {colors, radius} = useTheme();
+  return (
+    <View
+      style={[
+        styles.tabIcon,
+        {borderRadius: radius.lg},
+        focused && {backgroundColor: colors.primary + '26'},
+      ]}>
+      <Text style={styles.tabIconText}>{emoji}</Text>
+    </View>
+  );
+};
 
 function TabNavigator() {
   const {t} = useTranslation();
+  const {colors, typography} = useTheme();
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+          borderTopWidth: 1,
+          paddingTop: 8,
+          paddingBottom: 8,
+          height: 64,
+        },
         tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray500,
-        tabBarLabelStyle: styles.tabLabel,
+        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarLabelStyle: {
+          fontSize: typography.xs,
+          fontWeight: typography.medium,
+          marginTop: 2,
+        },
       }}>
       <Tab.Screen
         name="Today"
@@ -92,12 +112,16 @@ function TabNavigator() {
 }
 
 export default function RootNavigator() {
+  const {colors, typography} = useTheme();
+
   return (
     <Stack.Navigator
       screenOptions={{
-        headerStyle: {backgroundColor: colors.white},
-        headerTintColor: colors.textPrimaryLight,
+        headerStyle: {backgroundColor: colors.surface},
+        headerTintColor: colors.textPrimary,
+        headerTitleStyle: {fontWeight: typography.semibold, fontSize: typography.lg},
         headerShadowVisible: false,
+        contentStyle: {backgroundColor: colors.background},
       }}>
       <Stack.Screen
         name="Main"
@@ -154,28 +178,11 @@ export default function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
-  tabBar: {
-    backgroundColor: colors.white,
-    borderTopColor: colors.gray200,
-    borderTopWidth: 1,
-    paddingTop: 8,
-    paddingBottom: 8,
-    height: 60,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    marginTop: 2,
-  },
   tabIcon: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
-  },
-  tabIconFocused: {
-    backgroundColor: colors.gray100,
   },
   tabIconText: {
     fontSize: 18,

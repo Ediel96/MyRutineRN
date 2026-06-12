@@ -20,7 +20,7 @@ interface SettingsState {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  theme: AppThemeMode.system,
+  theme: AppThemeMode.dark,
   language: AppLanguage.system,
   refreshID: '',
   isLoading: true,
@@ -31,7 +31,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
     const theme = Object.values(AppThemeMode).includes(themeStr)
       ? themeStr
-      : AppThemeMode.system;
+      : AppThemeMode.dark;
     const language = Object.values(AppLanguage).includes(languageStr)
       ? languageStr
       : AppLanguage.system;
@@ -60,7 +60,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   resetAllData: () => {
     storage.resetAllData();
     set({
-      theme: AppThemeMode.system,
+      theme: AppThemeMode.dark,
       language: AppLanguage.system,
       refreshID: Date.now().toString(),
     });

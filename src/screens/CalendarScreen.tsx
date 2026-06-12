@@ -1,9 +1,10 @@
 // src/screens/CalendarScreen.tsx
 import React, {useEffect, useState} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, ScrollView} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {colors, spacing} from '../theme/AppTheme';
+import {ScreenContainer, Card} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
 import {WeekDay} from '../types/enums';
 
@@ -13,6 +14,8 @@ const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function CalendarScreen({}: Props) {
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {loadData, events, completions} = useRoutinesStore();
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -54,47 +57,54 @@ export default function CalendarScreen({}: Props) {
     const hasE = hasEvent(day);
     const done = isCompleted(day);
     cells.push(
-      <View key={day} style={[styles.cell, isToday && styles.today]}>
-        <Text style={[styles.dayNumber, isToday && styles.todayText]}>{day}</Text>
-        {hasE && <Text style={styles.indicator}>{done ? '✅' : '📌'}</Text>}
+      <View key={day} style={styles.cell}>
+        <View style={[styles.cellInner, isToday && styles.today]}>
+          <Text style={[styles.dayNumber, isToday && styles.todayText]}>{day}</Text>
+          {hasE && <Text style={styles.indicator}>{done ? '✅' : '📌'}</Text>}
+        </View>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
+    <ScreenContainer>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={prevMonth}><Text style={styles.navButton}>◀</Text></TouchableOpacity>
+          <TouchableOpacity onPress={prevMonth} hitSlop={theme.hitSlop}><Text style={styles.navButton}>◀</Text></TouchableOpacity>
           <Text style={styles.monthTitle}>{monthName}</Text>
-          <TouchableOpacity onPress={nextMonth}><Text style={styles.navButton}>▶</Text></TouchableOpacity>
+          <TouchableOpacity onPress={nextMonth} hitSlop={theme.hitSlop}><Text style={styles.navButton}>▶</Text></TouchableOpacity>
         </View>
-        <View style={styles.weekDays}>
-          {DAYS_OF_WEEK.map(d => <Text key={d} style={styles.weekDay}>{d}</Text>)}
-        </View>
-        <View style={styles.grid}>{cells}</View>
+        <Card style={styles.calendarCard}>
+          <View style={styles.weekDays}>
+            {DAYS_OF_WEEK.map(d => <Text key={d} style={styles.weekDay}>{d}</Text>)}
+          </View>
+          <View style={styles.grid}>{cells}</View>
+        </Card>
         <View style={styles.legend}>
           <Text style={styles.legendItem}>📌 Scheduled</Text>
           <Text style={styles.legendItem}>✅ Completed</Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg},
-  navButton: {fontSize: 20, color: colors.primary},
-  monthTitle: {fontSize: 20, fontWeight: 'bold', color: colors.textPrimaryLight},
-  weekDays: {flexDirection: 'row', paddingHorizontal: spacing.sm},
-  weekDay: {flex: 1, textAlign: 'center', fontSize: 12, fontWeight: '600', color: colors.gray500, paddingVertical: spacing.sm},
-  grid: {flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.sm},
-  cell: {width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xs},
-  today: {backgroundColor: colors.primary + '30', borderRadius: 20},
-  todayText: {fontWeight: 'bold', color: colors.primary},
-  dayNumber: {fontSize: 14, color: colors.textPrimaryLight},
-  indicator: {fontSize: 10, marginTop: 2},
-  legend: {flexDirection: 'row', justifyContent: 'center', padding: spacing.lg, gap: spacing.lg},
-  legendItem: {fontSize: 12, color: colors.gray600},
-});
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
+  StyleSheet.create({
+    scrollContent: {paddingBottom: spacing.xxl},
+    header: {flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: spacing.lg},
+    navButton: {fontSize: typography.xxl, color: colors.primary, padding: spacing.sm},
+    monthTitle: {fontSize: typography.xxl, fontWeight: typography.bold, color: colors.textPrimary, textTransform: 'capitalize'},
+    calendarCard: {marginHorizontal: spacing.lg},
+    weekDays: {flexDirection: 'row', marginBottom: spacing.sm},
+    weekDay: {flex: 1, textAlign: 'center', fontSize: typography.xs + 1, fontWeight: typography.semibold, color: colors.textSecondary, paddingVertical: spacing.sm},
+    grid: {flexDirection: 'row', flexWrap: 'wrap'},
+    cell: {width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxs},
+    cellInner: {width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', borderRadius: radius.lg},
+    today: {backgroundColor: colors.primary},
+    todayText: {fontWeight: typography.bold, color: colors.white},
+    dayNumber: {fontSize: typography.md, color: colors.textPrimary},
+    indicator: {fontSize: typography.xs, marginTop: 2},
+    legend: {flexDirection: 'row', justifyContent: 'center', padding: spacing.lg, gap: spacing.lg},
+    legendItem: {fontSize: typography.sm, color: colors.textSecondary},
+  });

@@ -1,9 +1,10 @@
 // src/screens/StatsScreen.tsx
 import React, {useEffect} from 'react';
-import {View, Text, StyleSheet, SafeAreaView, ScrollView} from 'react-native';
+import {View, Text, StyleSheet, ScrollView} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {colors, spacing, borderRadius, shadows} from '../theme/AppTheme';
+import {ScreenContainer, Card} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
 import * as storage from '../services/storage';
 
@@ -11,6 +12,8 @@ type Props = TabScreenProps<'Stats'>;
 
 export default function StatsScreen({}: Props) {
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {loadData, events, completions} = useRoutinesStore();
 
   useEffect(() => { loadData(); }, []);
@@ -30,49 +33,50 @@ export default function StatsScreen({}: Props) {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <ScreenContainer>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.title}>{t('stats.title')}</Text>
         <View style={styles.grid}>
           {statCards.map((card, i) => (
-            <View key={i} style={styles.card}>
+            <Card key={i} style={styles.card}>
               <Text style={styles.cardEmoji}>{card.emoji}</Text>
               <Text style={styles.cardValue}>{card.value}</Text>
               <Text style={styles.cardLabel}>{card.label}</Text>
               <Text style={styles.cardSub}>{card.sub}</Text>
-            </View>
+            </Card>
           ))}
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>{t('stats.monthly')}</Text>
-          <View style={styles.barChart}>
+          <Card style={styles.barChart}>
             {[40, 65, 45, 80, 55, 70, 90].map((h, i) => (
               <View key={i} style={styles.barContainer}>
                 <View style={[styles.bar, {height: h}]} />
                 <Text style={styles.barLabel}>{['M', 'T', 'W', 'T', 'F', 'S', 'S'][i]}</Text>
               </View>
             ))}
-          </View>
+          </Card>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  scrollView: {flex: 1},
-  title: {fontSize: 24, fontWeight: 'bold', color: colors.textPrimaryLight, padding: spacing.lg},
-  grid: {flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.md},
-  card: {width: '46%', backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.lg, margin: '2%', alignItems: 'center', ...shadows.sm},
-  cardEmoji: {fontSize: 32, marginBottom: spacing.sm},
-  cardValue: {fontSize: 32, fontWeight: 'bold', color: colors.textPrimaryLight},
-  cardLabel: {fontSize: 14, fontWeight: '600', color: colors.textPrimaryLight, marginTop: spacing.xs},
-  cardSub: {fontSize: 12, color: colors.gray500},
-  section: {padding: spacing.lg},
-  sectionTitle: {fontSize: 18, fontWeight: '600', color: colors.textPrimaryLight, marginBottom: spacing.md},
-  barChart: {flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 150, backgroundColor: colors.white, borderRadius: borderRadius.lg, padding: spacing.lg},
-  barContainer: {alignItems: 'center'},
-  bar: {width: 24, backgroundColor: colors.primary, borderRadius: 4},
-  barLabel: {fontSize: 10, color: colors.gray500, marginTop: spacing.xs},
-});
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
+  StyleSheet.create({
+    scrollView: {flex: 1},
+    scrollContent: {paddingBottom: spacing.xxl},
+    title: {fontSize: typography.title, fontWeight: typography.bold, color: colors.textPrimary, padding: spacing.lg},
+    grid: {flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: spacing.md},
+    card: {width: '46%', margin: '2%', alignItems: 'center'},
+    cardEmoji: {fontSize: 32, marginBottom: spacing.sm},
+    cardValue: {fontSize: typography.display, fontWeight: typography.bold, color: colors.textPrimary},
+    cardLabel: {fontSize: typography.md, fontWeight: typography.semibold, color: colors.textPrimary, marginTop: spacing.xs},
+    cardSub: {fontSize: typography.sm, color: colors.textSecondary},
+    section: {padding: spacing.lg},
+    sectionTitle: {fontSize: typography.xl, fontWeight: typography.semibold, color: colors.textPrimary, marginBottom: spacing.md},
+    barChart: {flexDirection: 'row', justifyContent: 'space-around', alignItems: 'flex-end', height: 150},
+    barContainer: {alignItems: 'center'},
+    bar: {width: 24, backgroundColor: colors.primary, borderRadius: radius.sm},
+    barLabel: {fontSize: typography.xs, color: colors.textSecondary, marginTop: spacing.xs},
+  });

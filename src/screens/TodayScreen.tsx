@@ -2,20 +2,14 @@
 // Pantalla principal de hoy - equivalente a Views/Today/TodayView.swift
 
 import React, {useEffect} from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
 import {usePomodoroStore} from '../stores/pomodoroStore';
 import TodayEventRow from '../components/TodayEventRow';
-import {colors, spacing, borderRadius, shadows} from '../theme/AppTheme';
+import {ScreenContainer, GradientView} from '../components/ui';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
 
 type Props = TabScreenProps<'Today'>;
@@ -23,6 +17,8 @@ type Props = TabScreenProps<'Today'>;
 export default function TodayScreen({}: Props) {
   const navigation = useNavigation();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {loadData, getEventsToday, getTodayProgress} = useRoutinesStore();
   const pomodoroRunning = usePomodoroStore(s => s.running);
 
@@ -52,12 +48,24 @@ export default function TodayScreen({}: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
+        <GradientView style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.date}>{dateStr}</Text>
-        </View>
+          {progress.total > 0 && (
+            <View style={styles.progressRow}>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, {width: `${progressPercent * 100}%`}]} />
+              </View>
+              <Text style={styles.progressLabel}>
+                {progress.completed === progress.total
+                  ? t('today.day_complete')
+                  : t('today.progress', {completed: progress.completed, total: progress.total})}
+              </Text>
+            </View>
+          )}
+        </GradientView>
 
         {eventsToday.length === 0 ? (
           <View style={styles.emptyState}>
@@ -74,25 +82,37 @@ export default function TodayScreen({}: Props) {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={handleVoiceCreator}>
-        <Text style={styles.fabIcon}>🎤</Text>
+      <TouchableOpacity onPress={handleVoiceCreator} activeOpacity={0.85} style={styles.fabWrapper}>
+        <GradientView variant="ai" style={styles.fab}>
+          <Text style={styles.fabIcon}>🎤</Text>
+        </GradientView>
       </TouchableOpacity>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {flex: 1, backgroundColor: colors.backgroundLight},
-  scrollView: {flex: 1},
-  scrollContent: {paddingBottom: 100},
-  header: {padding: spacing.lg, paddingTop: spacing.xl},
-  greeting: {fontSize: 28, fontWeight: 'bold', color: colors.textPrimaryLight},
-  date: {fontSize: 16, color: colors.gray600, marginTop: spacing.xs},
-  eventsList: {paddingVertical: spacing.sm},
-  emptyState: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80},
-  emptyIcon: {fontSize: 64, marginBottom: spacing.lg},
-  emptyTitle: {fontSize: 20, fontWeight: '600', color: colors.textPrimaryLight, marginBottom: spacing.sm},
-  emptyMessage: {fontSize: 14, color: colors.gray600, textAlign: 'center', paddingHorizontal: spacing.xxl},
-  fab: {position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center', ...shadows.lg},
-  fabIcon: {fontSize: 24},
-});
+const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) =>
+  StyleSheet.create({
+    scrollView: {flex: 1},
+    scrollContent: {paddingBottom: 100},
+    header: {
+      margin: spacing.lg,
+      borderRadius: radius.xxl,
+      padding: spacing.xl,
+      ...shadows.md,
+    },
+    greeting: {fontSize: typography.title, fontWeight: typography.bold, color: colors.white},
+    date: {fontSize: typography.lg, color: colors.white, opacity: 0.85, marginTop: spacing.xs},
+    progressRow: {marginTop: spacing.lg},
+    progressBar: {height: 8, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden'},
+    progressFill: {height: '100%', borderRadius: radius.full, backgroundColor: colors.white},
+    progressLabel: {fontSize: typography.sm, color: colors.white, marginTop: spacing.sm, fontWeight: typography.medium},
+    eventsList: {paddingVertical: spacing.sm},
+    emptyState: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80},
+    emptyIcon: {fontSize: 64, marginBottom: spacing.lg},
+    emptyTitle: {fontSize: typography.xxl, fontWeight: typography.semibold, color: colors.textPrimary, marginBottom: spacing.sm},
+    emptyMessage: {fontSize: typography.md, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xxl},
+    fabWrapper: {position: 'absolute', bottom: 24, right: 24, ...shadows.lg, borderRadius: radius.full},
+    fab: {width: 60, height: 60, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
+    fabIcon: {fontSize: 26},
+  });

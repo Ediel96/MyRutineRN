@@ -16,12 +16,10 @@ import {EventCategory, TaskStatus} from '../types/enums';
 import {
   EVENT_CATEGORY_CONFIG,
   TASK_STATUS_CONFIG,
-  MASTERY_LEVEL_CONFIG,
 } from '../types/enums';
-import {colors, spacing, borderRadius, shadows} from '../theme/AppTheme';
+import {useTheme, AppTheme} from '../theme/useTheme';
 import {useRoutinesStore, getActiveSubtasks, getSubtasksProgress} from '../stores/routinesStore';
 import {usePomodoroStore} from '../stores/pomodoroStore';
-import {formatTime} from '../stores/pomodoroStore';
 
 interface TodayEventRowProps {
   event: RoutineEvent;
@@ -48,6 +46,9 @@ function getEventState(event: RoutineEvent, isCompleted: boolean): EventState {
 export default function TodayEventRow({event}: TodayEventRowProps) {
   const navigation = useNavigation();
   const {t} = useTranslation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  const {colors} = theme;
   const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId} =
     useRoutinesStore();
 
@@ -82,14 +83,14 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
     <TouchableOpacity
       style={[
         styles.container,
-        {borderLeftColor: categoryConfig?.color || colors.work},
+        {borderLeftColor: categoryConfig?.color || colors.textTertiary},
         state === 'missed' && styles.missed,
         state === 'completed' && styles.completed,
       ]}
       onPress={handlePress}
       activeOpacity={0.7}>
       {/* Check button */}
-      <Pressable style={styles.checkButton} onPress={handleToggle}>
+      <Pressable style={styles.checkButton} onPress={handleToggle} hitSlop={theme.hitSlop}>
         <View
           style={[
             styles.checkCircle,
@@ -170,7 +171,8 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
         {hasSubtasks && (
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => setExpanded(!expanded)}>
+            onPress={() => setExpanded(!expanded)}
+            hitSlop={theme.hitSlop}>
             <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
           </TouchableOpacity>
         )}
@@ -179,7 +181,8 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
         {isPomodoroSuitable && !completed && !hasSubtasks && (
           <TouchableOpacity
             style={styles.timerButton}
-            onPress={handlePomodoro}>
+            onPress={handlePomodoro}
+            hitSlop={theme.hitSlop}>
             <Text style={styles.timerIcon}>⏱</Text>
           </TouchableOpacity>
         )}
@@ -208,6 +211,8 @@ interface SubtaskRowProps {
 
 function SubtaskRow({subtask, eventId}: SubtaskRowProps) {
   const navigation = useNavigation();
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const {advanceSubtaskStatus} = useRoutinesStore();
   const statusConfig = TASK_STATUS_CONFIG[subtask.statusRaw as TaskStatus];
 
@@ -228,172 +233,176 @@ function SubtaskRow({subtask, eventId}: SubtaskRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.xs,
-    borderLeftWidth: 4,
-    ...shadows.sm,
-  },
-  missed: {
-    opacity: 0.55,
-  },
-  completed: {
-    backgroundColor: colors.gray50,
-  },
-  checkButton: {
-    marginRight: spacing.md,
-    justifyContent: 'center',
-  },
-  checkCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: colors.gray400,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkCircleFilled: {
-    backgroundColor: colors.success,
-    borderColor: colors.success,
-  },
-  checkmark: {
-    color: colors.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  content: {
-    flex: 1,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  time: {
-    fontSize: 12,
-    color: colors.gray600,
-  },
-  nowBadge: {
-    marginLeft: spacing.sm,
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  nowBadgeText: {
-    color: colors.white,
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textPrimaryLight,
-    flex: 1,
-  },
-  titleCompleted: {
-    textDecorationLine: 'line-through',
-    color: colors.gray500,
-  },
-  alarmIcon: {
-    marginLeft: spacing.xs,
-    fontSize: 12,
-  },
-  purpose: {
-    fontSize: 13,
-    color: colors.gray600,
-    marginTop: spacing.xs,
-  },
-  progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  progressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.gray200,
-    borderRadius: 2,
-    marginRight: spacing.sm,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.success,
-    borderRadius: 2,
-  },
-  progressText: {
-    fontSize: 11,
-    color: colors.gray500,
-  },
-  streak: {
-    fontSize: 12,
-    marginTop: spacing.xs,
-  },
-  pomodoroIndicator: {
-    backgroundColor: colors.workPhase,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
-  },
-  pomodoroText: {
-    color: colors.white,
-    fontSize: 12,
-  },
-  actions: {
-    justifyContent: 'center',
-  },
-  actionButton: {
-    padding: spacing.sm,
-  },
-  chevron: {
-    fontSize: 14,
-    color: colors.gray500,
-  },
-  timerButton: {
-    backgroundColor: colors.primaryLight,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timerIcon: {
-    fontSize: 18,
-  },
-  subtasksContainer: {
-    marginTop: spacing.md,
-    paddingLeft: spacing.md,
-    borderLeftWidth: 2,
-    borderLeftColor: colors.gray200,
-  },
-  subtaskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  subtaskEmoji: {
-    fontSize: 16,
-    marginRight: spacing.sm,
-  },
-  subtaskTitle: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textPrimaryLight,
-  },
-  subtaskPom: {
-    fontSize: 12,
-    color: colors.gray500,
-  },
-});
+const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface,
+      borderRadius: radius.xl,
+      padding: spacing.lg,
+      marginHorizontal: spacing.lg,
+      marginVertical: spacing.xs,
+      borderLeftWidth: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+      ...shadows.sm,
+    },
+    missed: {
+      opacity: 0.55,
+    },
+    completed: {
+      backgroundColor: colors.surfaceAlt,
+    },
+    checkButton: {
+      marginRight: spacing.md,
+      justifyContent: 'center',
+    },
+    checkCircle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      borderWidth: 2,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkCircleFilled: {
+      backgroundColor: colors.success,
+      borderColor: colors.success,
+    },
+    checkmark: {
+      color: colors.background,
+      fontSize: 16,
+      fontWeight: 'bold',
+    },
+    content: {
+      flex: 1,
+    },
+    timeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    time: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+    },
+    nowBadge: {
+      marginLeft: spacing.sm,
+      backgroundColor: colors.accentWarm,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
+      borderRadius: radius.sm,
+    },
+    nowBadgeText: {
+      color: colors.background,
+      fontSize: typography.xs,
+      fontWeight: typography.bold,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: typography.lg,
+      fontWeight: typography.semibold,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    titleCompleted: {
+      textDecorationLine: 'line-through',
+      color: colors.textTertiary,
+    },
+    alarmIcon: {
+      marginLeft: spacing.xs,
+      fontSize: typography.sm,
+    },
+    purpose: {
+      fontSize: typography.sm + 1,
+      color: colors.textSecondary,
+      marginTop: spacing.xs,
+    },
+    progressContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    progressBar: {
+      flex: 1,
+      height: 4,
+      backgroundColor: colors.border,
+      borderRadius: 2,
+      marginRight: spacing.sm,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.success,
+      borderRadius: 2,
+    },
+    progressText: {
+      fontSize: typography.xs + 1,
+      color: colors.textSecondary,
+    },
+    streak: {
+      fontSize: typography.sm,
+      marginTop: spacing.xs,
+    },
+    pomodoroIndicator: {
+      backgroundColor: colors.accentSecondary,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+      marginTop: spacing.sm,
+      alignSelf: 'flex-start',
+    },
+    pomodoroText: {
+      color: colors.background,
+      fontSize: typography.sm,
+      fontWeight: typography.semibold,
+    },
+    actions: {
+      justifyContent: 'center',
+    },
+    actionButton: {
+      padding: spacing.sm,
+    },
+    chevron: {
+      fontSize: typography.sm + 2,
+      color: colors.textSecondary,
+    },
+    timerButton: {
+      backgroundColor: colors.primary + '26',
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    timerIcon: {
+      fontSize: typography.lg,
+    },
+    subtasksContainer: {
+      marginTop: spacing.md,
+      paddingLeft: spacing.md,
+      borderLeftWidth: 2,
+      borderLeftColor: colors.border,
+    },
+    subtaskRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+    },
+    subtaskEmoji: {
+      fontSize: typography.lg,
+      marginRight: spacing.sm,
+    },
+    subtaskTitle: {
+      flex: 1,
+      fontSize: typography.md,
+      color: colors.textPrimary,
+    },
+    subtaskPom: {
+      fontSize: typography.sm,
+      color: colors.textSecondary,
+    },
+  });

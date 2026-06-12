@@ -171,7 +171,7 @@ export function setCustomProviders(json: string): void {
 }
 
 export function getTheme(): string {
-  return storage.getString(KEYS.THEME) || 'system';
+  return storage.getString(KEYS.THEME) || 'dark';
 }
 
 export function setTheme(theme: string): void {
