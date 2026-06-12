@@ -1,0 +1,188 @@
+// src/i18n/locales/en.json
+// Traducciones en inglés - equivalente a Resources/en.lproj/Localizable.strings
+
+{
+  "app": {
+    "name": "MyRoutine"
+  },
+  "tabs": {
+    "today": "Today",
+    "week": "Week",
+    "calendar": "Calendar",
+    "stats": "Stats",
+    "settings": "Settings"
+  },
+  "today": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening",
+    "free_day": "Free day! 🌙",
+    "free_day_message": "No routines scheduled for today. Enjoy your day!",
+    "progress": "{{completed}}/{{total}} completed",
+    "day_complete": "Day complete! 🎉",
+    "pomodoro_active": "Pomodoro in progress"
+  },
+  "routine": {
+    "title": "Title",
+    "description": "Description",
+    "purpose": "Purpose",
+    "objectives": "Objectives",
+    "day": "Day",
+    "start_time": "Start time",
+    "end_time": "End time",
+    "category": "Category",
+    "alarm": "Alarm",
+    "alarm_time": "Alarm time",
+    "alarm_days": "Alarm days",
+    "reminder": "Reminder",
+    "minutes_before": "minutes before",
+    "create": "Create routine",
+    "edit": "Edit routine",
+    "delete": "Delete routine",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "subtask": {
+    "title": "Title",
+    "detail": "Detail",
+    "pomodoro_minutes": "Pomodoro minutes",
+    "create": "Create subtask",
+    "edit": "Edit subtask",
+    "delete": "Delete subtask",
+    "add_first": "Add your first subtask",
+    "archived": "Archived subtasks",
+    "restore": "Restore"
+  },
+  "status": {
+    "todo": "Pending",
+    "doing": "In progress",
+    "done": "Completed"
+  },
+  "pomodoro": {
+    "title": "Pomodoro",
+    "work": "Work",
+    "short_break": "Short break",
+    "long_break": "Long break",
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "stop": "Stop",
+    "skip": "Skip",
+    "session_complete": "Session complete!",
+    "minutes_remaining": "{{minutes}} min remaining"
+  },
+  "voice": {
+    "title": "Create with AI",
+    "voice_mode": "Voice",
+    "text_mode": "Text",
+    "record": "Record",
+    "stop_recording": "Stop recording",
+    "processing": "Processing with AI...",
+    "preview": "Preview routines",
+    "save_all": "Save all",
+    "discard": "Discard",
+    "try_again": "Try again",
+    "error_missing_key": "API key not configured. Please add it in Settings.",
+    "error_transcription": "Transcription failed. Please try again.",
+    "error_parsing": "AI parsing failed. Please try again.",
+    "error_network": "Network error. Check your connection.",
+    "error_invalid_json": "Invalid response from AI.",
+    "routine_count": "{{count}} routine(s) generated"
+  },
+  "stats": {
+    "title": "Statistics",
+    "weekly": "This week",
+    "monthly": "This month",
+    "total_completed": "Total completed",
+    "total_pomodoros": "Total pomodoros",
+    "current_streak": "Current streak",
+    "best_streak": "Best streak",
+    "routines_completed": "routines completed",
+    "pomodoros_done": "pomodoros done",
+    "weeks": "weeks"
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System",
+    "language": "Language",
+    "ai": "AI",
+    "ai_settings": "AI Settings",
+    "notifications": "Notifications",
+    "notification_diagnostics": "Notification diagnostics",
+    "logs": "View logs",
+    "about": "About",
+    "version": "Version",
+    "danger_zone": "Danger zone",
+    "reset_data": "Reset all data"
+  },
+  "ai_settings": {
+    "title": "AI Settings",
+    "provider": "Provider",
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "custom": "Custom",
+    "api_key": "API Key",
+    "enter_api_key": "Enter API key",
+    "custom_providers": "Custom providers",
+    "add_provider": "Add provider",
+    "provider_name": "Provider name",
+    "base_url": "Base URL",
+    "model": "Model",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "notification_diagnostics": {
+    "title": "Notification diagnostics",
+    "pending": "{{count}} pending notification(s)",
+    "no_pending": "No pending notifications",
+    "send_test": "Send test notification",
+    "next_fire": "Next fire",
+    "day_of_week": "Day of week"
+  },
+  "weekdays": {
+    "sunday": "Sunday",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sun": "Sun",
+    "mon": "Mon",
+    "tue": "Tue",
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "back": "Back",
+    "close": "Close",
+    "next": "Next",
+    "previous": "Previous",
+    "now": "NOW"
+  },
+  "logs": {
+    "title": "Logs",
+    "level_debug": "Debug",
+    "level_info": "Info",
+    "level_warning": "Warning",
+    "level_error": "Error",
+    "level_critical": "Critical",
+    "no_logs": "No logs available"
+  }
+}
