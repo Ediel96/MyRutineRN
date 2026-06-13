@@ -49,6 +49,7 @@ function TabNavigator() {
 
   return (
     <Tab.Navigator
+      initialRouteName="Calendar"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {

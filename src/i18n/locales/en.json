@@ -12,6 +12,10 @@
     "stats": "Stats",
     "settings": "Settings"
   },
+  "calendar": {
+    "drag_hint": "Drag events to reschedule them",
+    "tasks_count": "{{count}} tasks"
+  },
   "today": {
     "greeting_morning": "Good morning",
     "greeting_afternoon": "Good afternoon",

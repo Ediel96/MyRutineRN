@@ -9,6 +9,10 @@
     "stats": "Estadísticas",
     "settings": "Ajustes"
   },
+  "calendar": {
+    "drag_hint": "Arrastra los eventos para reprogramarlos",
+    "tasks_count": "{{count}} tareas"
+  },
   "today": {
     "greeting_morning": "Buenos días",
     "greeting_afternoon": "Buenas tardes",

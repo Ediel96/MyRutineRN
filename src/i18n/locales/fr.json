@@ -9,6 +9,10 @@
     "stats": "Stats",
     "settings": "Réglages"
   },
+  "calendar": {
+    "drag_hint": "Faites glisser les événements pour les reprogrammer",
+    "tasks_count": "{{count}} tâche(s)"
+  },
   "today": {
     "greeting_morning": "Bonjour",
     "greeting_afternoon": "Bon après-midi",

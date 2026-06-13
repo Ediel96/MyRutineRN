@@ -5,6 +5,7 @@ import React, {useEffect} from 'react';
 import {StatusBar} from 'react-native';
 import {NavigationContainer, DarkTheme, DefaultTheme} from '@react-navigation/native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {GestureHandlerRootView} from 'react-native-gesture-handler';
 
 import './src/i18n';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -59,8 +60,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AppContent />
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{flex: 1}}>
+      <SafeAreaProvider>
+        <AppContent />
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
