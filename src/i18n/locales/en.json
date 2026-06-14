@@ -93,7 +93,10 @@
     "error_invalid_json": "Invalid response from AI.",
     "error_unknown_provider": "No AI provider configured. Please select one in Settings.",
     "error_permission_denied": "Microphone permission denied.",
-    "routine_count": "{{count}} routine(s) generated"
+    "routine_count": "{{count}} routine(s) generated",
+    "text_not_configured": "Text AI provider is not configured. Configure it in Settings to generate routines from text.",
+    "voice_not_configured": "Voice transcription (OpenAI/Whisper) is not configured. Add your OpenAI key in Settings to use voice mode.",
+    "go_to_settings": "Go to Settings"
   },
   "stats": {
     "title": "Statistics",

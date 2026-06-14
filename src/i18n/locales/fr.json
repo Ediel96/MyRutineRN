@@ -90,7 +90,10 @@
     "error_invalid_json": "Réponse IA invalide.",
     "error_unknown_provider": "Aucun fournisseur IA configuré. Sélectionnez-en un dans Réglages.",
     "error_permission_denied": "Permission du microphone refusée.",
-    "routine_count": "{{count}} routine(s) générée(s)"
+    "routine_count": "{{count}} routine(s) générée(s)",
+    "text_not_configured": "Le fournisseur IA pour le texte n'est pas configuré. Configurez-le dans Réglages pour générer des routines à partir de texte.",
+    "voice_not_configured": "La transcription vocale (OpenAI/Whisper) n'est pas configurée. Ajoutez votre clé OpenAI dans Réglages pour utiliser le mode vocal.",
+    "go_to_settings": "Aller aux réglages"
   },
   "stats": {
     "title": "Statistiques",

@@ -1,10 +1,11 @@
 // src/screens/VoiceCreatorScreen.tsx
-import React, {useRef, useState} from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, PermissionsAndroid} from 'react-native';
+import React, {useEffect, useRef, useState} from 'react';
+import {View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, PermissionsAndroid, ScrollView} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import {useRoutinesStore} from '../stores/routinesStore';
+import {useAISettingsStore, getAPIConfig} from '../stores/aiSettingsStore';
 import {parseRoutineFromText, parseRoutineFromAudio} from '../services/aiParser';
 import {ScreenContainer, Card, TextField, Button, GradientView} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
@@ -42,7 +43,27 @@ export default function VoiceCreatorScreen() {
   const [error, setError] = useState('');
   const [recordTime, setRecordTime] = useState('00:00');
   const [parsedRoutines, setParsedRoutines] = useState<ParsedRoutine[]>([]);
+  const [textConfigured, setTextConfigured] = useState(true);
+  const [voiceConfigured, setVoiceConfigured] = useState(true);
   const recorderRef = useRef<AudioRecorderPlayer | null>(null);
+  const aiSettings = useAISettingsStore();
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (aiSettings.isLoading) {
+        await aiSettings.loadSettings();
+        return;
+      }
+      const config = await getAPIConfig(aiSettings);
+      if (!active) return;
+      setTextConfigured(!!config?.apiKey);
+      setVoiceConfigured(!!aiSettings.openAIKey);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [aiSettings]);
 
   const handleTextSubmit = async () => {
     if (!text.trim()) return;
@@ -149,6 +170,18 @@ export default function VoiceCreatorScreen() {
           </View>
           {mode === 'text' ? (
             <View style={styles.inputContainer}>
+              {!textConfigured && (
+                <Card style={styles.warningCard}>
+                  <Text style={styles.warningText}>{t('voice.text_not_configured')}</Text>
+                  <Button
+                    title={t('voice.go_to_settings')}
+                    variant="secondary"
+                    fullWidth={false}
+                    onPress={() => navigation.navigate('AISettings')}
+                    style={styles.warningButton}
+                  />
+                </Card>
+              )}
               <TextField
                 value={text}
                 onChangeText={setText}
@@ -156,13 +189,25 @@ export default function VoiceCreatorScreen() {
                 multiline
                 style={styles.textInput}
               />
-              <Button title="Generate with AI" onPress={handleTextSubmit} style={styles.submitButton} />
+              <Button title="Generate with AI" onPress={handleTextSubmit} disabled={!textConfigured} style={styles.submitButton} />
             </View>
           ) : (
             <View style={styles.voiceContainer}>
+              {!voiceConfigured && (
+                <Card style={styles.warningCard}>
+                  <Text style={styles.warningText}>{t('voice.voice_not_configured')}</Text>
+                  <Button
+                    title={t('voice.go_to_settings')}
+                    variant="secondary"
+                    fullWidth={false}
+                    onPress={() => navigation.navigate('AISettings')}
+                    style={styles.warningButton}
+                  />
+                </Card>
+              )}
               <Text style={styles.voiceText}>{t('voice.record')}</Text>
-              <TouchableOpacity onPress={handleStartRecording}>
-                <GradientView variant="ai" style={styles.recordButton}>
+              <TouchableOpacity onPress={handleStartRecording} disabled={!voiceConfigured}>
+                <GradientView variant="ai" style={[styles.recordButton, !voiceConfigured && styles.recordButtonDisabled]}>
                   <Text style={styles.recordIcon}>🎤</Text>
                 </GradientView>
               </TouchableOpacity>
@@ -191,7 +236,7 @@ export default function VoiceCreatorScreen() {
       )}
 
       {stage === CreatorStage.preview && (
-        <View style={styles.content}>
+        <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewContent}>
           <Text style={styles.previewTitle}>{t('voice.preview')}</Text>
           <Text style={styles.routineCount}>{t('voice.routine_count', {count: parsedRoutines.length})}</Text>
           {parsedRoutines.map((r, i) => (
@@ -202,7 +247,7 @@ export default function VoiceCreatorScreen() {
             </Card>
           ))}
           <Button title={t('voice.save_all')} onPress={handleSaveAll} style={styles.saveButton} />
-        </View>
+        </ScrollView>
       )}
 
       {stage === CreatorStage.error && (
@@ -223,6 +268,8 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     title: {fontSize: typography.xl, fontWeight: typography.semibold, color: colors.textPrimary},
     placeholder: {width: 24},
     content: {flex: 1, padding: spacing.lg},
+    previewScroll: {flex: 1},
+    previewContent: {padding: spacing.lg, paddingBottom: spacing.xxl},
     modeSelector: {flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl},
     modeButtonWrapper: {flex: 1},
     modeButton: {padding: spacing.lg, alignItems: 'center', borderRadius: radius.xl},
@@ -236,7 +283,11 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     voiceContainer: {flex: 1, alignItems: 'center', justifyContent: 'center'},
     voiceText: {color: colors.textSecondary, marginBottom: spacing.xl, textAlign: 'center'},
     recordButton: {width: 88, height: 88, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
+    recordButtonDisabled: {opacity: 0.5},
     recordIcon: {fontSize: 32},
+    warningCard: {marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.warning, backgroundColor: colors.warning + '1A'},
+    warningText: {color: colors.textPrimary, marginBottom: spacing.md},
+    warningButton: {alignSelf: 'flex-start'},
     recordTime: {fontSize: typography.title, fontWeight: typography.bold, color: colors.textPrimary, marginBottom: spacing.sm},
     stopButton: {backgroundColor: colors.error},
     stopIcon: {width: 28, height: 28, borderRadius: radius.sm, backgroundColor: colors.white},
