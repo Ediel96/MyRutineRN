@@ -40,6 +40,7 @@
     "create": "Créer une routine",
     "edit": "Modifier la routine",
     "delete": "Supprimer la routine",
+    "delete_confirm": "Voulez-vous vraiment supprimer cette routine ? Cette action est irréversible.",
     "save": "Enregistrer",
     "cancel": "Annuler"
   },

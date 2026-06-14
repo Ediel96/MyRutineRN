@@ -43,6 +43,7 @@
     "create": "Create routine",
     "edit": "Edit routine",
     "delete": "Delete routine",
+    "delete_confirm": "Are you sure you want to delete this routine? This cannot be undone.",
     "save": "Save",
     "cancel": "Cancel"
   },

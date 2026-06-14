@@ -9,11 +9,8 @@ import {useAISettingsStore, getAPIConfig} from '../stores/aiSettingsStore';
 import {parseRoutineFromText, parseRoutineFromAudio} from '../services/aiParser';
 import {ScreenContainer, Card, TextField, Button, GradientView, Badge} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
-import type {RootStackScreenProps} from '../navigation/types';
 import {CreatorStage, EventCategory, EVENT_CATEGORY_CONFIG, WeekDay, WEEKDAY_CONFIG} from '../types/enums';
 import type {ParsedRoutine} from '../types/models';
-
-type Props = RootStackScreenProps<'VoiceCreator'>;
 
 const ERROR_KEY_MAP: Record<string, string> = {
   missingAPIKey: 'error_missing_key',

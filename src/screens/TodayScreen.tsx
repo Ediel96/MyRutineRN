@@ -47,6 +47,10 @@ export default function TodayScreen({}: Props) {
     navigation.navigate('VoiceCreator');
   };
 
+  const handleAddRoutine = () => {
+    navigation.navigate('EventEditor', {});
+  };
+
   return (
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -82,6 +86,12 @@ export default function TodayScreen({}: Props) {
         )}
       </ScrollView>
 
+      <TouchableOpacity onPress={handleAddRoutine} activeOpacity={0.85} style={styles.fabWrapperSecondary}>
+        <GradientView style={styles.fab}>
+          <Text style={styles.fabIcon}>➕</Text>
+        </GradientView>
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={handleVoiceCreator} activeOpacity={0.85} style={styles.fabWrapper}>
         <GradientView variant="ai" style={styles.fab}>
           <Text style={styles.fabIcon}>🎤</Text>
@@ -113,6 +123,7 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     emptyTitle: {fontSize: typography.xxl, fontWeight: typography.semibold, color: colors.textPrimary, marginBottom: spacing.sm},
     emptyMessage: {fontSize: typography.md, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xxl},
     fabWrapper: {position: 'absolute', bottom: 24, right: 24, ...shadows.lg, borderRadius: radius.full},
+    fabWrapperSecondary: {position: 'absolute', bottom: 96, right: 24, ...shadows.lg, borderRadius: radius.full},
     fab: {width: 60, height: 60, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
     fabIcon: {fontSize: 26},
   });

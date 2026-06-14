@@ -40,6 +40,7 @@
     "create": "Crear rutina",
     "edit": "Editar rutina",
     "delete": "Eliminar rutina",
+    "delete_confirm": "¿Seguro que quieres eliminar esta rutina? Esta acción no se puede deshacer.",
     "save": "Guardar",
     "cancel": "Cancelar"
   },

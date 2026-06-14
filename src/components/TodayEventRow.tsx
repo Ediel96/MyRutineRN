@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Pressable,
+  Alert,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
@@ -49,7 +50,7 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const theme = useTheme();
   const styles = createStyles(theme);
   const {colors} = theme;
-  const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId} =
+  const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId, deleteEvent} =
     useRoutinesStore();
 
   const subtasks = getSubtasksByEventId(event.id);
@@ -75,6 +76,21 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
 
   const handlePomodoro = () => {
     navigation.navigate('Pomodoro', {eventId: event.id});
+  };
+
+  const handleEdit = () => {
+    navigation.navigate('EventEditor', {eventId: event.id});
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      t('routine.delete'),
+      t('routine.delete_confirm'),
+      [
+        {text: t('common.cancel'), style: 'cancel'},
+        {text: t('common.delete'), style: 'destructive', onPress: () => deleteEvent(event.id)},
+      ],
+    );
   };
 
   const [expanded, setExpanded] = useState(false);
@@ -186,6 +202,22 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
             <Text style={styles.timerIcon}>⏱</Text>
           </TouchableOpacity>
         )}
+
+        {/* Edit button */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleEdit}
+          hitSlop={theme.hitSlop}>
+          <Text style={styles.deleteIcon}>✏️</Text>
+        </TouchableOpacity>
+
+        {/* Delete button */}
+        <TouchableOpacity
+          style={styles.actionButton}
+          onPress={handleDelete}
+          hitSlop={theme.hitSlop}>
+          <Text style={styles.deleteIcon}>🗑</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Expanded subtasks */}
@@ -369,6 +401,9 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     chevron: {
       fontSize: typography.sm + 2,
       color: colors.textSecondary,
+    },
+    deleteIcon: {
+      fontSize: typography.lg,
     },
     timerButton: {
       backgroundColor: colors.primary + '26',
