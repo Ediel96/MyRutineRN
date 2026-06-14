@@ -7,10 +7,10 @@ import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import {useRoutinesStore} from '../stores/routinesStore';
 import {useAISettingsStore, getAPIConfig} from '../stores/aiSettingsStore';
 import {parseRoutineFromText, parseRoutineFromAudio} from '../services/aiParser';
-import {ScreenContainer, Card, TextField, Button, GradientView} from '../components/ui';
+import {ScreenContainer, Card, TextField, Button, GradientView, Badge} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
-import {CreatorStage} from '../types/enums';
+import {CreatorStage, EventCategory, EVENT_CATEGORY_CONFIG, WeekDay, WEEKDAY_CONFIG} from '../types/enums';
 import type {ParsedRoutine} from '../types/models';
 
 type Props = RootStackScreenProps<'VoiceCreator'>;
@@ -24,6 +24,22 @@ const ERROR_KEY_MAP: Record<string, string> = {
   unknownProvider: 'error_unknown_provider',
   permissionDenied: 'error_permission_denied',
 };
+
+const WEEKDAY_BY_NUMBER: Record<number, WeekDay> = Object.entries(WEEKDAY_CONFIG).reduce(
+  (acc, [day, cfg]) => {
+    acc[cfg.iOSWeekday] = day as WeekDay;
+    return acc;
+  },
+  {} as Record<number, WeekDay>,
+);
+
+function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  const total = ((h * 60 + m + minutes) % (24 * 60) + 24 * 60) % (24 * 60);
+  const hh = Math.floor(total / 60).toString().padStart(2, '0');
+  const mm = (total % 60).toString().padStart(2, '0');
+  return `${hh}:${mm}`;
+}
 
 async function requestMicrophonePermission(): Promise<boolean> {
   if (Platform.OS !== 'android') return true;
@@ -118,11 +134,15 @@ export default function VoiceCreatorScreen() {
 
   const handleSaveAll = () => {
     parsedRoutines.forEach(routine => {
-      addEvent({
-        title: routine.nombre, routineDescription: routine.descripcion, purpose: routine.proposito, objectives: routine.objetivo,
-        dayRaw: 'monday', startTime: routine.hora, endTime: '10:00', categoryRaw: routine.categoria,
-        notes: '', alarmEnabled: routine.alarma.activa, alarmTime: routine.alarma.hora, alarmDaysRaw: routine.alarma.dias.join(','),
-        notifyMinutesBefore: 0, googleSynced: false,
+      const endTime = addMinutesToTime(routine.hora, routine.duracionMinutos);
+      const days = routine.dias.length > 0 ? routine.dias : [2, 3, 4, 5, 6];
+      days.forEach(dayNum => {
+        addEvent({
+          title: routine.nombre, routineDescription: routine.descripcion, purpose: routine.proposito, objectives: routine.objetivo,
+          dayRaw: WEEKDAY_BY_NUMBER[dayNum] ?? WeekDay.monday, startTime: routine.hora, endTime, categoryRaw: routine.categoria,
+          notes: '', alarmEnabled: routine.alarma.activa, alarmTime: routine.alarma.hora, alarmDaysRaw: routine.alarma.dias.join(','),
+          notifyMinutesBefore: 0, googleSynced: false,
+        });
       });
     });
     navigation.goBack();
@@ -239,13 +259,33 @@ export default function VoiceCreatorScreen() {
         <ScrollView style={styles.previewScroll} contentContainerStyle={styles.previewContent}>
           <Text style={styles.previewTitle}>{t('voice.preview')}</Text>
           <Text style={styles.routineCount}>{t('voice.routine_count', {count: parsedRoutines.length})}</Text>
-          {parsedRoutines.map((r, i) => (
-            <Card key={i} style={styles.routineCard}>
-              <Text style={styles.routineTitle}>{r.nombre}</Text>
-              <Text style={styles.routineDetail}>{r.descripcion}</Text>
-              <Text style={styles.routineMeta}>⏰ {r.hora} | 📅 {r.dias.join(', ')} | 🏷️ {r.categoria}</Text>
-            </Card>
-          ))}
+          {parsedRoutines.map((r, i) => {
+            const categoryConfig = EVENT_CATEGORY_CONFIG[r.categoria as EventCategory];
+            return (
+              <Card key={i} style={styles.routineCard}>
+                <View style={styles.routineHeader}>
+                  <Text style={styles.routineTitle}>{r.nombre}</Text>
+                  <Badge
+                    label={`${categoryConfig?.emoji ?? ''} ${categoryConfig?.displayName ?? r.categoria}`}
+                    color={theme.getCategoryColor(r.categoria)}
+                  />
+                </View>
+                <Text style={styles.routineDetail}>{r.descripcion}</Text>
+                <Text style={styles.routineField}>
+                  <Text style={styles.routineFieldLabel}>{t('routine.purpose')}: </Text>{r.proposito}
+                </Text>
+                <Text style={styles.routineField}>
+                  <Text style={styles.routineFieldLabel}>{t('routine.objectives')}: </Text>{r.objetivo}
+                </Text>
+                <View style={styles.dayBadges}>
+                  {r.dias.map(d => (
+                    <Badge key={d} label={t(`weekdays.${WEEKDAY_CONFIG[WEEKDAY_BY_NUMBER[d]].shortName.toLowerCase()}`)} />
+                  ))}
+                </View>
+                <Text style={styles.routineMeta}>⏰ {r.hora} - {addMinutesToTime(r.hora, r.duracionMinutos)} ({r.duracionMinutos} min)</Text>
+              </Card>
+            );
+          })}
           <Button title={t('voice.save_all')} onPress={handleSaveAll} style={styles.saveButton} />
         </ScrollView>
       )}
@@ -296,8 +336,12 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     previewTitle: {fontSize: typography.xxl, fontWeight: typography.bold, color: colors.textPrimary, marginBottom: spacing.sm},
     routineCount: {color: colors.textSecondary, marginBottom: spacing.lg},
     routineCard: {marginBottom: spacing.md},
-    routineTitle: {fontSize: typography.lg, fontWeight: typography.semibold, color: colors.textPrimary},
+    routineHeader: {flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm},
+    routineTitle: {flex: 1, fontSize: typography.lg, fontWeight: typography.semibold, color: colors.textPrimary},
     routineDetail: {color: colors.textSecondary, marginTop: spacing.xs},
+    routineField: {color: colors.textSecondary, marginTop: spacing.xs, fontSize: typography.sm},
+    routineFieldLabel: {color: colors.textPrimary, fontWeight: typography.semibold},
+    dayBadges: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm},
     routineMeta: {color: colors.textTertiary, marginTop: spacing.sm, fontSize: typography.sm},
     saveButton: {marginTop: spacing.sm},
     errorContainer: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl},
