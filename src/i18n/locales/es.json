@@ -88,6 +88,8 @@
     "error_parsing": "Parsing de IA fallido. Por favor, reintenta.",
     "error_network": "Error de red. Comprueba tu conexión.",
     "error_invalid_json": "Respuesta inválida de la IA.",
+    "error_unknown_provider": "Ningún proveedor de IA configurado. Selecciona uno en Ajustes.",
+    "error_permission_denied": "Permiso de micrófono denegado.",
     "routine_count": "{{count}} rutina(s) generada(s)"
   },
   "stats": {
@@ -129,12 +131,16 @@
     "api_key": "API Key",
     "enter_api_key": "Introducir API key",
     "custom_providers": "Proveedores personalizados",
+    "examples": "Ejemplos (toca para rellenar)",
     "add_provider": "Añadir proveedor",
     "provider_name": "Nombre del proveedor",
     "base_url": "URL base",
     "model": "Modelo",
     "save": "Guardar",
     "delete": "Eliminar",
+    "no_api_key": "Sin API key",
+    "error_required": "Campo obligatorio",
+    "error_invalid_url": "Debe ser una URL válida (https://...)",
     "edit": "Editar"
   },
   "notification_diagnostics": {

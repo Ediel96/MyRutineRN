@@ -6,7 +6,7 @@ import type {CustomProvider} from '../types';
 import * as storage from '../services/storage';
 import * as keychain from '../services/keychain';
 
-interface AISettingsState {
+export interface AISettingsState {
   selectedProvider: string;
   customProviders: CustomProvider[];
   openAIKey: string;
@@ -121,17 +121,19 @@ export const useAISettingsStore = create<AISettingsState>((set, get) => ({
 
 // API configuration helpers
 export interface APIConfig {
+  providerName: string;
   baseUrl: string;
   model: string;
   apiKey: string;
   supportsJSONMode: boolean;
 }
 
-export function getAPIConfig(state: AISettingsState): APIConfig | null {
+export async function getAPIConfig(state: AISettingsState): Promise<APIConfig | null> {
   const {selectedProvider, openAIKey, anthropicKey, customProviders} = state;
 
   if (selectedProvider === 'builtin:anthropic') {
     return {
+      providerName: 'Anthropic',
       baseUrl: 'https://api.anthropic.com/v1/messages',
       model: 'claude-sonnet-4-20250514',
       apiKey: anthropicKey,
@@ -141,6 +143,7 @@ export function getAPIConfig(state: AISettingsState): APIConfig | null {
 
   if (selectedProvider === 'builtin:openai') {
     return {
+      providerName: 'OpenAI',
       baseUrl: 'https://api.openai.com/v1/chat/completions',
       model: 'gpt-4o-mini',
       apiKey: openAIKey,
@@ -153,10 +156,11 @@ export function getAPIConfig(state: AISettingsState): APIConfig | null {
     const provider = customProviders.find(p => p.id === customId);
     if (provider) {
       return {
+        providerName: provider.name,
         baseUrl: provider.baseUrl,
         model: provider.model,
-        apiKey: '', // Will be fetched from keychain
-        supportsJSONMode: true,
+        apiKey: await keychain.getCustomProviderKey(provider.id),
+        supportsJSONMode: false,
       };
     }
   }

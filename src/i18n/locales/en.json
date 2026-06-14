@@ -91,6 +91,8 @@
     "error_parsing": "AI parsing failed. Please try again.",
     "error_network": "Network error. Check your connection.",
     "error_invalid_json": "Invalid response from AI.",
+    "error_unknown_provider": "No AI provider configured. Please select one in Settings.",
+    "error_permission_denied": "Microphone permission denied.",
     "routine_count": "{{count}} routine(s) generated"
   },
   "stats": {
@@ -132,13 +134,17 @@
     "api_key": "API Key",
     "enter_api_key": "Enter API key",
     "custom_providers": "Custom providers",
+    "examples": "Examples (tap to fill in)",
     "add_provider": "Add provider",
     "provider_name": "Provider name",
     "base_url": "Base URL",
     "model": "Model",
     "save": "Save",
     "delete": "Delete",
-    "edit": "Edit"
+    "edit": "Edit",
+    "no_api_key": "No API key",
+    "error_required": "Required field",
+    "error_invalid_url": "Must be a valid URL (https://...)"
   },
   "notification_diagnostics": {
     "title": "Notification diagnostics",

@@ -3,9 +3,8 @@
 
 import axios from 'axios';
 import type {ParsedRoutine, RoutineEvent} from '../types';
-import {EventCategory, WeekDay} from '../types/enums';
-import {getAPIConfig} from '../stores/aiSettingsStore';
-import type {AISettingsState} from '../stores/aiSettingsStore';
+import {EventCategory} from '../types/enums';
+import {getAPIConfig, useAISettingsStore, type APIConfig} from '../stores/aiSettingsStore';
 import * as keychain from '../services/keychain';
 
 interface ParseResult {
@@ -13,6 +12,20 @@ interface ParseResult {
   routines: ParsedRoutine[];
   error?: string;
 }
+
+// Typical/allowed duration ranges (minutes) per category - mirrors AIRoutineParser.swift
+// so AI-suggested durations are clamped to realistic blocks instead of trusted blindly.
+const CATEGORY_DURATION: Record<EventCategory, {min: number; max: number; fallback: number}> = {
+  [EventCategory.gym]: {min: 60, max: 120, fallback: 60},
+  [EventCategory.code]: {min: 60, max: 240, fallback: 90},
+  [EventCategory.english]: {min: 30, max: 90, fallback: 45},
+  [EventCategory.cooking]: {min: 15, max: 60, fallback: 30},
+  [EventCategory.social]: {min: 30, max: 180, fallback: 60},
+  [EventCategory.work]: {min: 180, max: 480, fallback: 240},
+  [EventCategory.rest]: {min: 15, max: 60, fallback: 30},
+};
+
+const ANTHROPIC_BASE_URL = 'https://api.anthropic.com/v1/messages';
 
 const SYSTEM_PROMPT = `You are a routine planner assistant. Generate JSON array of routines based on user input.
 
@@ -43,25 +56,33 @@ Rules:
 - alarma.activa is always true
 - dias never empty (default: [2,3,4,5,6] for weekdays)
 - Categories: gym, code, english, cooking, social, work, rest
-- nombre max 50 characters`;
+- nombre max 50 characters
+- Activities don't overlap: use hora + duracionMinutos to chain the day's timeline
+- If an activity repeats at different times, create separate routines (e.g. "Work Morning" / "Work Afternoon")
+
+Typical duracionMinutos ranges per category (don't shrink real activities below these):
+- work: 180-480 (full work block, split into multiple if it spans the whole day)
+- gym: 60-120
+- code: 60-240
+- english: 30-90
+- cooking: 15-60 (quick meals between activities = 15-20)
+- social: 30-180
+- rest: 15-60`;
 
 export async function parseRoutineFromText(
   text: string,
   existingRoutines: RoutineEvent[],
 ): Promise<ParseResult> {
-  const state = {
-    selectedProvider: 'builtin:anthropic',
-    openAIKey: await keychain.getOpenAIKey(),
-    anthropicKey: await keychain.getAnthropicKey(),
-    customProviders: [],
-  } as AISettingsState;
-
-  const config = getAPIConfig(state);
-  if (!config) {
-    return {success: false, routines: [], error: 'No API configuration found'};
+  if (useAISettingsStore.getState().isLoading) {
+    await useAISettingsStore.getState().loadSettings();
   }
+  const state = useAISettingsStore.getState();
+  const config = await getAPIConfig(state);
 
-  if (!state.openAIKey) {
+  if (!config) {
+    return {success: false, routines: [], error: 'unknownProvider'};
+  }
+  if (!config.apiKey) {
     return {success: false, routines: [], error: 'missingAPIKey'};
   }
 
@@ -72,19 +93,15 @@ export async function parseRoutineFromText(
 
     const userPrompt = `${text}${context}\n\nCreate routines based on the user's request.`;
 
-    let response: string;
-
-    if (state.selectedProvider === 'builtin:anthropic') {
-      response = await callAnthropicAPI(config, userPrompt);
-    } else {
-      response = await callOpenAICompatibleAPI(config, userPrompt);
-    }
+    const response = config.baseUrl === ANTHROPIC_BASE_URL
+      ? await callAnthropicAPI(config, userPrompt)
+      : await callOpenAICompatibleAPI(config, userPrompt);
 
     const routines = extractAndValidateRoutines(response);
     return {success: true, routines};
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
-    return {success: false, routines: [], error: message};
+    return {success: false, routines: [], error: `networkError: ${message}`};
   }
 }
 
@@ -98,7 +115,7 @@ export async function parseRoutineFromAudio(
   }
 
   try {
-    // Transcribe audio with Whisper
+    // Transcribe audio with Whisper (always OpenAI, regardless of the selected text provider)
     const formData = new FormData();
     formData.append('file', {uri: audioUri, type: 'audio/m4a', name: 'recording.m4a'} as unknown as Blob);
     formData.append('model', 'whisper-1');
@@ -118,17 +135,17 @@ export async function parseRoutineFromAudio(
     const text = transcriptionResponse.data.text;
     return parseRoutineFromText(text, existingRoutines);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Transcription failed';
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return {success: false, routines: [], error: `transcriptionFailed: ${message}`};
   }
 }
 
-async function callAnthropicAPI(config: ReturnType<typeof getAPIConfig>, userPrompt: string): Promise<string> {
+async function callAnthropicAPI(config: APIConfig, userPrompt: string): Promise<string> {
   const response = await axios.post(
     config.baseUrl,
     {
       model: config.model,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: SYSTEM_PROMPT,
       messages: [{role: 'user', content: userPrompt}],
     },
@@ -145,17 +162,22 @@ async function callAnthropicAPI(config: ReturnType<typeof getAPIConfig>, userPro
   return response.data.content[0].text;
 }
 
-async function callOpenAICompatibleAPI(config: ReturnType<typeof getAPIConfig>, userPrompt: string): Promise<string> {
+async function callOpenAICompatibleAPI(config: APIConfig, userPrompt: string): Promise<string> {
+  const payload: Record<string, unknown> = {
+    model: config.model,
+    max_tokens: 8192,
+    messages: [
+      {role: 'system', content: SYSTEM_PROMPT},
+      {role: 'user', content: userPrompt},
+    ],
+  };
+  if (config.supportsJSONMode) {
+    payload.response_format = {type: 'json_object'};
+  }
+
   const response = await axios.post(
     `${config.baseUrl}/chat/completions`,
-    {
-      model: config.model,
-      messages: [
-        {role: 'system', content: SYSTEM_PROMPT},
-        {role: 'user', content: userPrompt},
-      ],
-      response_format: {type: 'json_object'},
-    },
+    payload,
     {
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
@@ -181,42 +203,31 @@ function extractAndValidateRoutines(rawResponse: string): ParsedRoutine[] {
   }
   json = json.trim();
 
-  try {
-    const parsed = JSON.parse(json);
-    let routines: ParsedRoutine[] = [];
-
-    if (Array.isArray(parsed)) {
-      routines = parsed;
-    } else if (parsed.rutinas && Array.isArray(parsed.rutinas)) {
-      routines = parsed.rutinas;
-    } else if (parsed.routines && Array.isArray(parsed.routines)) {
-      routines = parsed.routines;
-    }
-
-    return routines.map(validateAndFix);
-  } catch {
-    // Try to repair truncated JSON
-    const repaired = repairTruncatedJSON(json);
+  const parseRoutines = (raw: string): ParsedRoutine[] | null => {
     try {
-      const parsed = JSON.parse(repaired);
-      if (parsed.rutinas) {
-        return (parsed.rutinas as ParsedRoutine[]).map(validateAndFix);
-      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed.rutinas && Array.isArray(parsed.rutinas)) return parsed.rutinas;
+      if (parsed.routines && Array.isArray(parsed.routines)) return parsed.routines;
+      return null;
     } catch {
-      // Give up
+      return null;
     }
-    return [];
-  }
+  };
+
+  const routines = parseRoutines(json) ?? parseRoutines(repairTruncatedJSON(json));
+  return (routines ?? []).map(validateAndFix);
 }
 
 function validateAndFix(routine: ParsedRoutine): ParsedRoutine {
-  // Truncate name
-  const nombre = routine.nombre?.slice(0, 50) || 'Nueva rutina';
+  // Nombre: trim, truncate, fallback
+  const trimmedName = (routine.nombre || '').trim();
+  const nombre = trimmedName ? trimmedName.slice(0, 50) : 'Nueva rutina';
 
-  // Ensure non-empty fields
-  const descripcion = routine.descripcion || '';
-  const proposito = routine.proposito || '';
-  const objetivo = routine.objetivo || '';
+  // Text fields: never empty
+  const descripcion = (routine.descripcion || '').trim() || 'Personal routine';
+  const proposito = (routine.proposito || '').trim() || 'Improve personal habits';
+  const objetivo = (routine.objetivo || '').trim() || 'Complete the planned routine';
 
   // Validate category
   const validCategories = Object.values(EventCategory);
@@ -224,26 +235,24 @@ function validateAndFix(routine: ParsedRoutine): ParsedRoutine {
     ? routine.categoria
     : EventCategory.work;
 
-  // Parse and validate days
+  // Days: only 1-7, dedup, sorted, default to weekdays if empty
   let dias = (routine.dias || [])
-    .filter(d => typeof d === 'number' && d >= 1 && d <= 7)
-    .map(d => d as number);
+    .filter(d => typeof d === 'number' && d >= 1 && d <= 7);
+  dias = [...new Set(dias)].sort((a, b) => a - b);
+  if (dias.length === 0) dias = [2, 3, 4, 5, 6];
 
-  // Remove duplicates and sort
-  dias = [...new Set(dias)].sort();
-
-  // Default to weekdays if empty
-  if (dias.length === 0) {
-    dias = [2, 3, 4, 5, 6];
-  }
-
-  // Parse and validate time
+  // Time
   const hora = parseTime(routine.hora);
 
-  // Force alarm active
+  // Duration: clamp to the category's realistic range
+  const range = CATEGORY_DURATION[categoria as EventCategory];
+  const duracionMinutos = clamp(routine.duracionMinutos || range.fallback, range.min, range.max);
+
+  // Alarm always active - the AI must never be able to disable it by inference
+  const alarmaDias = (routine.alarma?.dias || []).filter(d => d >= 1 && d <= 7);
   const alarma = {
     activa: true,
-    dias: routine.alarma?.dias?.filter(d => d >= 1 && d <= 7) || dias,
+    dias: alarmaDias.length > 0 ? [...new Set(alarmaDias)].sort((a, b) => a - b) : dias,
     hora: parseTime(routine.alarma?.hora || hora),
   };
 
@@ -255,10 +264,14 @@ function validateAndFix(routine: ParsedRoutine): ParsedRoutine {
     categoria,
     dias,
     hora,
-    duracionMinutos: routine.duracionMinutos || 60,
+    duracionMinutos,
     alarma,
-    subcategorias: [],
+    subcategorias: [], // Managed separately in the routine detail view
   };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 function parseTime(time: string | undefined): string {
@@ -274,34 +287,63 @@ function parseTime(time: string | undefined): string {
   return '09:00';
 }
 
+// Attempts to close truncated JSON so it can be parsed - happens when max_tokens
+// is hit mid-response. Mirrors AIRoutineParser.swift's repair strategy.
 function repairTruncatedJSON(json: string): string {
-  // Find the last complete routine object
-  const lastCompleteObject = findLastValidRoutineObject(json);
-  if (!lastCompleteObject) return json;
-
-  // Try to close any open brackets
-  let result = json;
-  const openBraces = (json.match(/\{/g) || []).length;
-  const closeBraces = (json.match(/\}/g) || []).length;
-  const openBrackets = (json.match(/\[/g) || []).length;
-  const closeBrackets = (json.match(/\]/g) || []).length;
-
-  for (let i = 0; i < openBraces - closeBraces; i++) {
-    result += '}';
+  const cut = findLastValidRoutineCut(json);
+  if (cut !== null) {
+    let result = json.slice(0, cut).trim();
+    if (result.endsWith(',')) result = result.slice(0, -1);
+    return `${result}\n  ]\n}`;
   }
-  for (let i = 0; i < openBrackets - closeBrackets; i++) {
-    result += ']';
-  }
-
-  return result;
+  return closeOpenBrackets(json);
 }
 
-function findLastValidRoutineObject(json: string): string | null {
-  // Look for the last complete routine object pattern
-  const pattern = /"nombre"\s*:\s*"[^"]*"[^}]*\}/g;
-  const matches = json.match(pattern);
-  if (matches && matches.length > 0) {
-    return matches[matches.length - 1];
+// Finds the index just after the last complete routine object (depth 1, i.e. an
+// object directly inside the top-level "rutinas" array) before the truncation point.
+function findLastValidRoutineCut(json: string): number | null {
+  let depth = 0;
+  let inString = false;
+  let prevChar = '';
+  let lastCompleteObjectEnd: number | null = null;
+
+  for (let i = 0; i < json.length; i++) {
+    const char = json[i];
+    if (char === '"' && prevChar !== '\\') inString = !inString;
+    if (!inString) {
+      if (char === '{') depth++;
+      else if (char === '}') {
+        depth--;
+        if (depth === 1) lastCompleteObjectEnd = i + 1;
+      }
+    }
+    prevChar = char;
   }
-  return null;
+
+  return lastCompleteObjectEnd;
+}
+
+// Closes unclosed `{` and `[` brackets at the end of truncated JSON.
+function closeOpenBrackets(json: string): string {
+  const stack: string[] = [];
+  let inString = false;
+  let prevChar = '';
+
+  for (const char of json) {
+    if (char === '"' && prevChar !== '\\') inString = !inString;
+    if (!inString) {
+      if (char === '{' || char === '[') stack.push(char);
+      else if (char === '}' || char === ']') stack.pop();
+    }
+    prevChar = char;
+  }
+
+  let result = json;
+  const lastBrace = Math.max(result.lastIndexOf('}'), result.lastIndexOf(']'));
+  if (lastBrace !== -1) result = result.slice(0, lastBrace + 1);
+
+  for (let i = stack.length - 1; i >= 0; i--) {
+    result += stack[i] === '{' ? '}' : ']';
+  }
+  return result;
 }

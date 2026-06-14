@@ -88,6 +88,8 @@
     "error_parsing": "Parsing IA échoué. Veuillez réessayer.",
     "error_network": "Erreur réseau. Vérifiez votre connexion.",
     "error_invalid_json": "Réponse IA invalide.",
+    "error_unknown_provider": "Aucun fournisseur IA configuré. Sélectionnez-en un dans Réglages.",
+    "error_permission_denied": "Permission du microphone refusée.",
     "routine_count": "{{count}} routine(s) générée(s)"
   },
   "stats": {
@@ -129,13 +131,17 @@
     "api_key": "Clé API",
     "enter_api_key": "Entrer la clé API",
     "custom_providers": "Fournisseurs personnalisés",
+    "examples": "Exemples (touchez pour remplir)",
     "add_provider": "Ajouter un fournisseur",
     "provider_name": "Nom du fournisseur",
     "base_url": "URL de base",
     "model": "Modèle",
     "save": "Enregistrer",
     "delete": "Supprimer",
-    "edit": "Modifier"
+    "edit": "Modifier",
+    "no_api_key": "Pas de clé API",
+    "error_required": "Champ requis",
+    "error_invalid_url": "Doit être une URL valide (https://...)"
   },
   "notification_diagnostics": {
     "title": "Diagnostic des notifications",
