@@ -26,6 +26,13 @@
     "day_complete": "¡Día completado! 🎉",
     "pomodoro_active": "Pomodoro en progreso"
   },
+  "week": {
+    "no_events": "Sin eventos",
+    "event_count_one": "{{count}} evento",
+    "event_count_other": "{{count}} eventos",
+    "today_badge": "HOY",
+    "free_day": "Día libre · toca para añadir"
+  },
   "routine": {
     "title": "Título",
     "description": "Descripción",

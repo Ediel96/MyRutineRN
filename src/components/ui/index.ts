@@ -7,3 +7,4 @@ export {default as TextField} from './TextField';
 export {default as Badge} from './Badge';
 export {default as GradientView} from './GradientView';
 export {default as SkeletonRow} from './SkeletonRow';
+export {default as SkeletonDayCard} from './SkeletonDayCard';
