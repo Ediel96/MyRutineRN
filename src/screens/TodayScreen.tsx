@@ -65,25 +65,28 @@ export default function TodayScreen({}: Props) {
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerShadow}>
-          <GradientView style={styles.header}>
-            <Text style={styles.greeting}>{greeting}</Text>
-            <Text style={styles.date}>{dateStr}</Text>
-            {progressTotal > 0 && (
-              <View style={styles.progressSection}>
-                {/* 1. Barra primero */}
-                <View style={styles.progressBar}>
-                  <Animated.View style={[styles.progressFill, progressFillStyle]} />
+          <View style={styles.header}>
+            <GradientView style={StyleSheet.absoluteFill} />
+            <View style={styles.headerContent}>
+              <Text style={styles.greeting}>{greeting}</Text>
+              <Text style={styles.date}>{dateStr}</Text>
+              {progressTotal > 0 && (
+                <View style={styles.progressSection}>
+                  {/* 1. Barra primero */}
+                  <View style={styles.progressBar}>
+                    <Animated.View style={[styles.progressFill, progressFillStyle]} />
+                  </View>
+                  {/* 2. Conteo debajo: total realizadas + porcentaje */}
+                  <View style={styles.progressMetaRow}>
+                    <Text style={styles.progressCount}>
+                      {t('today.progress', {completed: progressCompleted, total: progressTotal})}
+                    </Text>
+                    <Text style={styles.progressPct}>{Math.round(progressPct * 100)}%</Text>
+                  </View>
                 </View>
-                {/* 2. Conteo debajo: total realizadas + porcentaje */}
-                <View style={styles.progressMetaRow}>
-                  <Text style={styles.progressCount}>
-                    {t('today.progress', {completed: progressCompleted, total: progressTotal})}
-                  </Text>
-                  <Text style={styles.progressPct}>{Math.round(progressPct * 100)}%</Text>
-                </View>
-              </View>
-            )}
-          </GradientView>
+              )}
+            </View>
+          </View>
         </View>
 
         {isLoading ? (
@@ -157,9 +160,11 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     },
     header: {
       borderRadius: radius.xl,
+      overflow: 'hidden',
+    },
+    headerContent: {
       paddingVertical: spacing.xl,
       paddingHorizontal: spacing.xl,
-      overflow: 'hidden',
     },
     greeting: {fontSize: 30, lineHeight: 34, fontWeight: '700', color: '#FFFFFF'},
     date: {fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.72)', marginTop: 4},
