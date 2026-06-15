@@ -24,6 +24,8 @@
     "free_day_message": "No routines scheduled for today. Enjoy your day!",
     "free_day_cta": "Tap ➕ to add your first routine",
     "progress": "{{completed}}/{{total}} completed",
+    "progress_done": "Done: {{count}}",
+    "progress_total": "Total: {{count}}",
     "day_complete": "Day complete! 🎉",
     "pomodoro_active": "Pomodoro in progress"
   },

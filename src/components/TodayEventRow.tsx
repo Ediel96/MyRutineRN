@@ -362,13 +362,14 @@ interface SwipeActionButtonProps {
 
 function SwipeActionButton({icon, label, backgroundColor, onPress, theme}: SwipeActionButtonProps) {
   const styles = createStyles(theme);
+  const textColor = backgroundColor === theme.colors.accentWarm ? theme.colors.textAccent : theme.colors.white;
   return (
     <TouchableOpacity
       style={[styles.swipeActionButton, {backgroundColor}]}
       onPress={onPress}
       activeOpacity={0.8}>
       <Text style={styles.swipeActionIcon}>{icon}</Text>
-      <Text style={styles.swipeActionLabel} numberOfLines={1}>
+      <Text style={[styles.swipeActionLabel, {color: textColor}]} numberOfLines={1}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -442,7 +443,7 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     swipeActionLabel: {
       fontSize: typography.xs,
       fontWeight: typography.semibold,
-      color: colors.background,
+      color: colors.white,
     },
     container: {
       flexDirection: 'row',
@@ -453,10 +454,12 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       borderColor: colors.border,
     },
     missed: {
-      opacity: 0.55,
+      backgroundColor: colors.surfaceAlt,
+      borderLeftColor: colors.warning,
     },
     completed: {
       backgroundColor: colors.surfaceAlt,
+      borderLeftColor: colors.success,
     },
     checkButton: {
       marginRight: spacing.md,
@@ -485,9 +488,9 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       backgroundColor: colors.success,
     },
     checkmark: {
-      color: colors.background,
+      color: colors.white,
       fontSize: 16,
-      fontWeight: 'bold',
+      fontWeight: typography.bold,
       zIndex: 1,
     },
     content: {
@@ -510,7 +513,7 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       borderRadius: radius.sm,
     },
     nowBadgeText: {
-      color: colors.background,
+      color: colors.textAccent,
       fontSize: typography.xs,
       fontWeight: typography.bold,
     },
@@ -571,7 +574,7 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       alignSelf: 'flex-start',
     },
     pomodoroText: {
-      color: colors.background,
+      color: colors.textAccent,
       fontSize: typography.sm,
       fontWeight: typography.semibold,
     },

@@ -3,11 +3,10 @@
 
 import React, {useEffect} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
-import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
+import Animated, {Easing, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {usePomodoroStore} from '../stores/pomodoroStore';
 import TodayEventRow from '../components/TodayEventRow';
 import {ScreenContainer, GradientView, SkeletonRow} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
@@ -17,25 +16,29 @@ type Props = TabScreenProps<'Today'>;
 
 export default function TodayScreen({}: Props) {
   const navigation = useNavigation();
-  const {t} = useTranslation();
+  const {t, i18n} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
   const {loadData, isLoading, getEventsToday, getTodayProgress} = useRoutinesStore();
-  const pomodoroRunning = usePomodoroStore(s => s.running);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   const eventsToday = getEventsToday();
   const progress = getTodayProgress();
-  const progressPercent = progress.total > 0 ? progress.completed / progress.total : 0;
+  const progressTotal = progress.total > 0 ? progress.total : eventsToday.length;
+  const progressCompleted = Math.min(progress.completed, progressTotal);
+  const progressPct = progressTotal > 0 ? progressCompleted / progressTotal : 0;
 
   const progressWidth = useSharedValue(0);
   useEffect(() => {
-    progressWidth.value = withTiming(progressPercent * 100, {duration: 800});
-  }, [progressPercent, progressWidth]);
-  const progressFillStyle = useAnimatedStyle(() => ({width: `${progressWidth.value}%`}));
+    progressWidth.value = withTiming(progressPct, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progressPct, progressWidth]);
+  const progressFillStyle = useAnimatedStyle(() => ({width: `${progressWidth.value * 100}%`}));
 
   const hour = new Date().getHours();
   const greeting =
@@ -44,7 +47,7 @@ export default function TodayScreen({}: Props) {
     t('today.greeting_evening');
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString(undefined, {
+  const dateStr = today.toLocaleDateString(i18n.language, {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -64,16 +67,20 @@ export default function TodayScreen({}: Props) {
         <GradientView style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.date}>{dateStr}</Text>
-          {progress.total > 0 && (
-            <View style={styles.progressRow}>
-              <View style={styles.progressBar}>
-                <Animated.View style={[styles.progressFill, progressFillStyle]} />
+          {progressTotal > 0 && (
+            <View style={styles.progressSection}>
+              <View style={styles.progressRow}>
+                <View style={styles.progressBar}>
+                  <Animated.View style={[styles.progressFill, progressFillStyle]} />
+                </View>
+                <Text style={styles.progressLabel} numberOfLines={1}>
+                  {t('today.progress', {completed: progressCompleted, total: progressTotal})}
+                </Text>
               </View>
-              <Text style={styles.progressLabel}>
-                {progress.completed === progress.total
-                  ? t('today.day_complete')
-                  : t('today.progress', {completed: progress.completed, total: progress.total})}
-              </Text>
+              <View style={styles.progressMetaRow}>
+                <Text style={styles.progressMetaText}>{t('today.progress_done', {count: progressCompleted})}</Text>
+                <Text style={styles.progressMetaText}>{t('today.progress_total', {count: progressTotal})}</Text>
+              </View>
             </View>
           )}
         </GradientView>
@@ -120,19 +127,29 @@ export default function TodayScreen({}: Props) {
 const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) =>
   StyleSheet.create({
     scrollView: {flex: 1},
-    scrollContent: {paddingBottom: 100},
+    scrollContent: {paddingBottom: 120},
     header: {
-      margin: spacing.lg,
-      borderRadius: radius.xxl,
-      padding: spacing.xl,
-      ...shadows.md,
+      marginTop: 24,
+      marginHorizontal: 16,
+      borderRadius: 22,
+      paddingTop: 22,
+      paddingBottom: 22,
+      paddingHorizontal: 20,
+      shadowColor: '#5B7FFF',
+      shadowOpacity: 0.18,
+      shadowRadius: 12,
+      shadowOffset: {width: 0, height: 4},
+      elevation: 5,
     },
-    greeting: {fontSize: typography.title, fontWeight: typography.bold, color: colors.white},
-    date: {fontSize: typography.lg, color: colors.white, opacity: 0.85, marginTop: spacing.xs},
-    progressRow: {marginTop: spacing.lg},
-    progressBar: {height: 8, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden'},
-    progressFill: {height: '100%', borderRadius: radius.full, backgroundColor: colors.white},
-    progressLabel: {fontSize: typography.sm, color: colors.white, marginTop: spacing.sm, fontWeight: typography.medium},
+    greeting: {fontSize: 30, lineHeight: 34, fontWeight: '700', color: '#FFFFFF'},
+    date: {fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.72)', marginTop: 4},
+    progressSection: {marginTop: 20},
+    progressRow: {gap: 10},
+    progressBar: {height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden'},
+    progressFill: {height: '100%', borderRadius: 4, backgroundColor: '#FFFFFF'},
+    progressLabel: {alignSelf: 'flex-end', fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.72)'},
+    progressMetaRow: {marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+    progressMetaText: {fontSize: 12, fontWeight: '600', color: '#FFFFFF'},
     eventsList: {paddingVertical: spacing.sm},
     emptyState: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80},
     emptyIcon: {fontSize: 64, marginBottom: spacing.lg},
