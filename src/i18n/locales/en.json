@@ -83,6 +83,7 @@
     "resume": "Resume",
     "stop": "Stop",
     "skip": "Skip",
+    "completed_count": "{{count}} pomodoros completed",
     "session_complete": "Session complete!",
     "minutes_remaining": "{{minutes}} min remaining"
   },

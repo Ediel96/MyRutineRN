@@ -80,6 +80,7 @@
     "resume": "Reanudar",
     "stop": "Detener",
     "skip": "Saltar",
+    "completed_count": "{{count}} pomodoros completados",
     "session_complete": "¡Sesión completada!",
     "minutes_remaining": "{{minutes}} min restantes"
   },

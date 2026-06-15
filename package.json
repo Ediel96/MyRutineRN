@@ -8,6 +8,12 @@
     "lint": "eslint .",
     "postinstall": "patch-package",
     "start": "react-native start",
+    "start:reset": "npm run start -- --reset-cache",
+    "clean:node": "watchman watch-del-all || true && rm -rf node_modules && npm install && npx pod-install || true",
+    "android:reset": "cd android && ./gradlew clean && cd .. && npm run start:reset",
+    "android:clean-install": "npm run clean:node && cd android && ./gradlew clean && cd .. && npm run android",
+    "ios:reset": "cd ios && npx pod-install && xcodebuild -alltargets clean || true && cd .. && npm run start:reset",
+    "ios:clean-install": "npm run clean:node && cd ios && npx pod-install && cd .. && npm run ios",
     "test": "jest"
   },
   "dependencies": {
