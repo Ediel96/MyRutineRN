@@ -134,8 +134,11 @@
     "notifications": "Notifications",
     "notification_diagnostics": "Notification diagnostics",
     "logs": "View logs",
+    "advanced": "Configuration",
     "about": "About",
     "version": "Version",
+    "total_routines": "Routines",
+    "total_subtasks": "Subtasks",
     "danger_zone": "Danger zone",
     "reset_data": "Reset all data"
   },
