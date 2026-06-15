@@ -19,6 +19,7 @@
     "greeting_evening": "Buenas noches",
     "free_day": "¡Día libre! 🌙",
     "free_day_message": "No hay rutinas programadas para hoy. ¡Disfruta tu día!",
+    "free_day_cta": "Toca ➕ para agregar tu primera rutina",
     "progress": "{{completed}}/{{total}} completadas",
     "day_complete": "¡Día completado! 🎉",
     "pomodoro_active": "Pomodoro en progreso"

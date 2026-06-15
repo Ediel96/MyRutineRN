@@ -11,6 +11,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import HapticFeedback from 'react-native-haptic-feedback';
 import {useTheme} from '../../theme/useTheme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'tertiary' | 'danger';
@@ -39,6 +40,11 @@ export default function Button({
   const {colors, gradients, radius, spacing, typography, minTapSize} = useTheme();
   const isDisabled = disabled || loading;
 
+  const handlePress = () => {
+    HapticFeedback.trigger('impactLight', {enableVibrateFallback: true, ignoreAndroidSystemSettings: false});
+    onPress();
+  };
+
   const base: ViewStyle = {
     borderRadius: radius.full,
     minHeight: minTapSize,
@@ -66,7 +72,7 @@ export default function Button({
 
   if (variant === 'primary') {
     return (
-      <TouchableOpacity onPress={onPress} disabled={isDisabled} activeOpacity={0.85} style={style}>
+      <TouchableOpacity onPress={handlePress} disabled={isDisabled} activeOpacity={0.85} style={style}>
         <LinearGradient
           colors={[...gradients.primary]}
           start={{x: 0, y: 0}}
@@ -81,7 +87,7 @@ export default function Button({
   if (variant === 'danger') {
     return (
       <TouchableOpacity
-        onPress={onPress}
+        onPress={handlePress}
         disabled={isDisabled}
         activeOpacity={0.85}
         style={[base, {backgroundColor: colors.error + '20'}, style]}>
@@ -93,7 +99,7 @@ export default function Button({
   if (variant === 'secondary') {
     return (
       <TouchableOpacity
-        onPress={onPress}
+        onPress={handlePress}
         disabled={isDisabled}
         activeOpacity={0.85}
         style={[base, {borderWidth: 1.5, borderColor: colors.primary, backgroundColor: 'transparent'}, style]}>
@@ -105,7 +111,7 @@ export default function Button({
   // tertiary
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       disabled={isDisabled}
       activeOpacity={0.7}
       style={[

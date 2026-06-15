@@ -122,6 +122,7 @@ export default function RootNavigator() {
         headerTitleStyle: {fontWeight: typography.semibold, fontSize: typography.lg},
         headerShadowVisible: false,
         contentStyle: {backgroundColor: colors.background},
+        animation: 'slide_from_right',
       }}>
       <Stack.Screen
         name="Main"

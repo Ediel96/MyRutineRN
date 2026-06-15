@@ -1,7 +1,7 @@
 // src/components/TodayEventRow.tsx
 // Fila de rutina para TodayView - equivalente a Views/Today/TodayEventRow.swift
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,17 @@ import {
   TouchableOpacity,
   Pressable,
   Alert,
+  LayoutChangeEvent,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+  runOnJS,
+} from 'react-native-reanimated';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import HapticFeedback from 'react-native-haptic-feedback';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import type {RoutineEvent, Subtask} from '../types';
@@ -27,6 +37,11 @@ interface TodayEventRowProps {
 }
 
 type EventState = 'pending' | 'ongoing' | 'completed' | 'missed';
+
+// Ancho de cada botón de acción del swipe (icono + etiqueta)
+const ACTION_WIDTH = 72;
+const LEFT_ACTIONS_WIDTH = ACTION_WIDTH * 2; // Alarma + Pomodoro
+const RIGHT_ACTIONS_WIDTH = ACTION_WIDTH * 2; // Editar + Eliminar
 
 function getEventState(event: RoutineEvent, isCompleted: boolean): EventState {
   if (isCompleted) return 'completed';
@@ -49,8 +64,8 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const {t} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {colors} = theme;
-  const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId, deleteEvent} =
+  const {colors, spacing} = theme;
+  const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId, updateEvent, deleteEvent} =
     useRoutinesStore();
 
   const subtasks = getSubtasksByEventId(event.id);
@@ -61,24 +76,92 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const streak = calculateStreak(event.id);
 
   const categoryConfig = EVENT_CATEGORY_CONFIG[event.categoryRaw as EventCategory];
-  const isPomodoroSuitable = categoryConfig?.isPomodoroSuitable ?? false;
 
   const isActivePomodoro = usePomodoroStore(s => s.running && s.eventTitle === event.title);
   const hasSubtasks = activeSubtasks.length > 0;
 
   const handleToggle = () => {
+    HapticFeedback.trigger('impactLight', {enableVibrateFallback: true, ignoreAndroidSystemSettings: false});
     toggleCompletedToday(event.id);
   };
 
+  const scale = useSharedValue(1);
+  const rowAnimStyle = useAnimatedStyle(() => ({transform: [{scale: scale.value}]}));
+
+  const checkScale = useSharedValue(completed ? 1 : 0);
+  useEffect(() => {
+    checkScale.value = withSpring(completed ? 1 : 0, {damping: 12});
+  }, [completed, checkScale]);
+  const checkAnimStyle = useAnimatedStyle(() => ({transform: [{scale: checkScale.value}]}));
+
+  // ===== Swipe horizontal (Gesture.Pan) =====
+  const translateX = useSharedValue(0);
+  const startX = useSharedValue(0);
+
+  const closeRow = () => {
+    translateX.value = withSpring(0, {damping: 18, stiffness: 200});
+  };
+
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-15, 15])
+    .onStart(() => {
+      startX.value = translateX.value;
+    })
+    .onUpdate(e => {
+      const next = startX.value + e.translationX;
+      translateX.value = Math.max(-RIGHT_ACTIONS_WIDTH, Math.min(LEFT_ACTIONS_WIDTH, next));
+    })
+    .onEnd(() => {
+      if (translateX.value > ACTION_WIDTH) {
+        translateX.value = withSpring(LEFT_ACTIONS_WIDTH, {damping: 18, stiffness: 200});
+      } else if (translateX.value < -ACTION_WIDTH) {
+        translateX.value = withSpring(-RIGHT_ACTIONS_WIDTH, {damping: 18, stiffness: 200});
+      } else {
+        translateX.value = withSpring(0, {damping: 18, stiffness: 200});
+      }
+    });
+
+  const translateStyle = useAnimatedStyle(() => ({
+    transform: [{translateX: translateX.value}],
+  }));
+
+  // ===== Colapso animado al eliminar =====
+  const measuredHeight = useSharedValue(0);
+  const collapseProgress = useSharedValue(0);
+
+  const handleLayout = (e: LayoutChangeEvent) => {
+    if (collapseProgress.value === 0) {
+      measuredHeight.value = e.nativeEvent.layout.height;
+    }
+  };
+
+  const collapseStyle = useAnimatedStyle(() => ({
+    height: measuredHeight.value > 0 ? measuredHeight.value * (1 - collapseProgress.value) : undefined,
+    opacity: 1 - collapseProgress.value,
+    marginVertical: spacing.xs * (1 - collapseProgress.value),
+  }));
+
   const handlePress = () => {
+    if (translateX.value !== 0) {
+      closeRow();
+      return;
+    }
     navigation.navigate('EventDetail', {eventId: event.id});
   };
 
+  const handleAlarm = () => {
+    closeRow();
+    updateEvent(event.id, {alarmEnabled: !event.alarmEnabled});
+  };
+
   const handlePomodoro = () => {
+    closeRow();
     navigation.navigate('Pomodoro', {eventId: event.id});
   };
 
   const handleEdit = () => {
+    closeRow();
     navigation.navigate('EventEditor', {eventId: event.id});
   };
 
@@ -88,7 +171,18 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
       t('routine.delete_confirm'),
       [
         {text: t('common.cancel'), style: 'cancel'},
-        {text: t('common.delete'), style: 'destructive', onPress: () => deleteEvent(event.id)},
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => {
+            translateX.value = withSpring(0, {damping: 18, stiffness: 200});
+            collapseProgress.value = withTiming(1, {duration: 250}, finished => {
+              if (finished) {
+                runOnJS(deleteEvent)(event.id);
+              }
+            });
+          },
+        },
       ],
     );
   };
@@ -96,142 +190,187 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.container,
-        {borderLeftColor: categoryConfig?.color || colors.textTertiary},
-        state === 'missed' && styles.missed,
-        state === 'completed' && styles.completed,
-      ]}
-      onPress={handlePress}
-      activeOpacity={0.7}>
-      {/* Check button */}
-      <Pressable style={styles.checkButton} onPress={handleToggle} hitSlop={theme.hitSlop}>
-        <View
-          style={[
-            styles.checkCircle,
-            completed && styles.checkCircleFilled,
-          ]}>
-          {completed && <Text style={styles.checkmark}>✓</Text>}
-        </View>
-      </Pressable>
-
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Time and now badge */}
-        <View style={styles.timeRow}>
-          <Text style={styles.time}>
-            {event.startTime} · {event.endTime}
-          </Text>
-          {state === 'ongoing' && (
-            <View style={styles.nowBadge}>
-              <Text style={styles.nowBadgeText}>{t('common.now')}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Title with category emoji */}
-        <View style={styles.titleRow}>
-          <Text
-            style={[
-              styles.title,
-              completed && styles.titleCompleted,
-            ]}>
-            {categoryConfig?.emoji} {event.title}
-          </Text>
-          {event.alarmEnabled && <Text style={styles.alarmIcon}>🔔</Text>}
-        </View>
-
-        {/* Purpose */}
-        {event.purpose && (
-          <Text style={styles.purpose} numberOfLines={1}>
-            {event.purpose}
-          </Text>
-        )}
-
-        {/* Subtasks progress */}
-        {subtasks.length > 0 && (
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View
-                style={[
-                  styles.progressFill,
-                  {width: `${progress * 100}%`},
-                ]}
-              />
-            </View>
-            <Text style={styles.progressText}>
-              {subtasks.filter(s => s.statusRaw === TaskStatus.done).length}/{subtasks.length}
-            </Text>
-          </View>
-        )}
-
-        {/* Streak */}
-        {streak > 1 && (
-          <Text style={styles.streak}>🔥 {streak}</Text>
-        )}
-
-        {/* Active Pomodoro indicator */}
-        {isActivePomodoro && (
-          <View style={styles.pomodoroIndicator}>
-            <Text style={styles.pomodoroText}>
-              🍅 {t('today.pomodoro_active')}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Actions */}
-      <View style={styles.actions}>
-        {/* Expand/collapse subtasks */}
-        {hasSubtasks && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => setExpanded(!expanded)}
-            hitSlop={theme.hitSlop}>
-            <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Pomodoro button */}
-        {isPomodoroSuitable && !completed && !hasSubtasks && (
-          <TouchableOpacity
-            style={styles.timerButton}
+    <Animated.View style={[styles.collapseWrapper, collapseStyle]} onLayout={handleLayout}>
+      <View style={styles.rowWrapper}>
+        {/* Swipe derecha → Alarma + Pomodoro */}
+        <View style={styles.leftActions}>
+          <SwipeActionButton
+            icon="🔔"
+            label={t('routine.alarm')}
+            backgroundColor={colors.accentWarm}
+            onPress={handleAlarm}
+            theme={theme}
+          />
+          <SwipeActionButton
+            icon="⏱"
+            label={t('pomodoro.title')}
+            backgroundColor={colors.accentSecondary}
             onPress={handlePomodoro}
-            hitSlop={theme.hitSlop}>
-            <Text style={styles.timerIcon}>⏱</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Edit button */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleEdit}
-          hitSlop={theme.hitSlop}>
-          <Text style={styles.deleteIcon}>✏️</Text>
-        </TouchableOpacity>
-
-        {/* Delete button */}
-        <TouchableOpacity
-          style={styles.actionButton}
-          onPress={handleDelete}
-          hitSlop={theme.hitSlop}>
-          <Text style={styles.deleteIcon}>🗑</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Expanded subtasks */}
-      {expanded && hasSubtasks && (
-        <View style={styles.subtasksContainer}>
-          {activeSubtasks.map(subtask => (
-            <SubtaskRow
-              key={subtask.id}
-              subtask={subtask}
-              eventId={event.id}
-            />
-          ))}
+            theme={theme}
+          />
         </View>
-      )}
+
+        {/* Swipe izquierda → Editar + Eliminar */}
+        <View style={styles.rightActions}>
+          <SwipeActionButton
+            icon="✏️"
+            label={t('common.edit')}
+            backgroundColor={colors.primary}
+            onPress={handleEdit}
+            theme={theme}
+          />
+          <SwipeActionButton
+            icon="🗑"
+            label={t('common.delete')}
+            backgroundColor={colors.error}
+            onPress={handleDelete}
+            theme={theme}
+          />
+        </View>
+
+        <GestureDetector gesture={panGesture}>
+          <Animated.View style={translateStyle}>
+            <Animated.View style={rowAnimStyle}>
+              <TouchableOpacity
+                style={[
+                  styles.container,
+                  {borderLeftColor: categoryConfig?.color || colors.textTertiary},
+                  state === 'missed' && styles.missed,
+                  state === 'completed' && styles.completed,
+                ]}
+                onPress={handlePress}
+                onPressIn={() => { scale.value = withSpring(0.97); }}
+                onPressOut={() => { scale.value = withSpring(1); }}
+                activeOpacity={0.7}>
+                {/* Check button */}
+                <Pressable style={styles.checkButton} onPress={handleToggle} hitSlop={theme.hitSlop}>
+                  <View
+                    style={[
+                      styles.checkCircle,
+                      completed && styles.checkCircleBorder,
+                    ]}>
+                    <Animated.View style={[styles.checkFill, checkAnimStyle]} />
+                    {completed && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                </Pressable>
+
+                {/* Content */}
+                <View style={styles.content}>
+                  {/* Time and now badge */}
+                  <View style={styles.timeRow}>
+                    <Text style={styles.time}>
+                      {event.startTime} · {event.endTime}
+                    </Text>
+                    {state === 'ongoing' && (
+                      <View style={styles.nowBadge}>
+                        <Text style={styles.nowBadgeText}>{t('common.now')}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {/* Title with category emoji */}
+                  <View style={styles.titleRow}>
+                    <Text
+                      style={[
+                        styles.title,
+                        completed && styles.titleCompleted,
+                      ]}>
+                      {categoryConfig?.emoji} {event.title}
+                    </Text>
+                    {event.alarmEnabled && <Text style={styles.alarmIcon}>🔔</Text>}
+                  </View>
+
+                  {/* Purpose */}
+                  {event.purpose && (
+                    <Text style={styles.purpose} numberOfLines={1}>
+                      {event.purpose}
+                    </Text>
+                  )}
+
+                  {/* Subtasks progress */}
+                  {subtasks.length > 0 && (
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {width: `${progress * 100}%`},
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {subtasks.filter(s => s.statusRaw === TaskStatus.done).length}/{subtasks.length}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Streak */}
+                  {streak > 1 && (
+                    <Text style={styles.streak}>🔥 {streak}</Text>
+                  )}
+
+                  {/* Active Pomodoro indicator */}
+                  {isActivePomodoro && (
+                    <View style={styles.pomodoroIndicator}>
+                      <Text style={styles.pomodoroText}>
+                        🍅 {t('today.pomodoro_active')}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Expand/collapse subtasks */}
+                {hasSubtasks && (
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.actionButton}
+                      onPress={() => setExpanded(!expanded)}
+                      hitSlop={theme.hitSlop}>
+                      <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Expanded subtasks */}
+                {expanded && hasSubtasks && (
+                  <View style={styles.subtasksContainer}>
+                    {activeSubtasks.map(subtask => (
+                      <SubtaskRow
+                        key={subtask.id}
+                        subtask={subtask}
+                        eventId={event.id}
+                      />
+                    ))}
+                  </View>
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+          </Animated.View>
+        </GestureDetector>
+      </View>
+    </Animated.View>
+  );
+}
+
+interface SwipeActionButtonProps {
+  icon: string;
+  label: string;
+  backgroundColor: string;
+  onPress: () => void;
+  theme: AppTheme;
+}
+
+function SwipeActionButton({icon, label, backgroundColor, onPress, theme}: SwipeActionButtonProps) {
+  const styles = createStyles(theme);
+  return (
+    <TouchableOpacity
+      style={[styles.swipeActionButton, {backgroundColor}]}
+      onPress={onPress}
+      activeOpacity={0.8}>
+      <Text style={styles.swipeActionIcon}>{icon}</Text>
+      <Text style={styles.swipeActionLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -265,19 +404,53 @@ function SubtaskRow({subtask, eventId}: SubtaskRowProps) {
   );
 }
 
-const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) =>
+const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
   StyleSheet.create({
+    collapseWrapper: {
+      marginHorizontal: spacing.lg,
+    },
+    rowWrapper: {
+      borderRadius: radius.xl,
+      overflow: 'hidden',
+    },
+    leftActions: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: LEFT_ACTIONS_WIDTH,
+      flexDirection: 'row',
+    },
+    rightActions: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: RIGHT_ACTIONS_WIDTH,
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    swipeActionButton: {
+      width: ACTION_WIDTH,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swipeActionIcon: {
+      fontSize: typography.lg,
+      marginBottom: spacing.xxs,
+    },
+    swipeActionLabel: {
+      fontSize: typography.xs,
+      fontWeight: typography.semibold,
+      color: colors.background,
+    },
     container: {
       flexDirection: 'row',
       backgroundColor: colors.surface,
-      borderRadius: radius.xl,
       padding: spacing.lg,
-      marginHorizontal: spacing.lg,
-      marginVertical: spacing.xs,
       borderLeftWidth: 4,
       borderWidth: 1,
       borderColor: colors.border,
-      ...shadows.sm,
     },
     missed: {
       opacity: 0.55,
@@ -297,15 +470,25 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
       borderColor: colors.border,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
     },
-    checkCircleFilled: {
-      backgroundColor: colors.success,
+    checkCircleBorder: {
       borderColor: colors.success,
+    },
+    checkFill: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: 14,
+      backgroundColor: colors.success,
     },
     checkmark: {
       color: colors.background,
       fontSize: 16,
       fontWeight: 'bold',
+      zIndex: 1,
     },
     content: {
       flex: 1,
@@ -401,20 +584,6 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     chevron: {
       fontSize: typography.sm + 2,
       color: colors.textSecondary,
-    },
-    deleteIcon: {
-      fontSize: typography.lg,
-    },
-    timerButton: {
-      backgroundColor: colors.primary + '26',
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    timerIcon: {
-      fontSize: typography.lg,
     },
     subtasksContainer: {
       marginTop: spacing.md,

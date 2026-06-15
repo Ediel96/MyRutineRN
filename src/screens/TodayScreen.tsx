@@ -3,12 +3,13 @@
 
 import React, {useEffect} from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import Animated, {useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
 import {usePomodoroStore} from '../stores/pomodoroStore';
 import TodayEventRow from '../components/TodayEventRow';
-import {ScreenContainer, GradientView} from '../components/ui';
+import {ScreenContainer, GradientView, SkeletonRow} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
 
@@ -19,7 +20,7 @@ export default function TodayScreen({}: Props) {
   const {t} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {loadData, getEventsToday, getTodayProgress} = useRoutinesStore();
+  const {loadData, isLoading, getEventsToday, getTodayProgress} = useRoutinesStore();
   const pomodoroRunning = usePomodoroStore(s => s.running);
 
   useEffect(() => {
@@ -29,6 +30,12 @@ export default function TodayScreen({}: Props) {
   const eventsToday = getEventsToday();
   const progress = getTodayProgress();
   const progressPercent = progress.total > 0 ? progress.completed / progress.total : 0;
+
+  const progressWidth = useSharedValue(0);
+  useEffect(() => {
+    progressWidth.value = withTiming(progressPercent * 100, {duration: 800});
+  }, [progressPercent, progressWidth]);
+  const progressFillStyle = useAnimatedStyle(() => ({width: `${progressWidth.value}%`}));
 
   const hour = new Date().getHours();
   const greeting =
@@ -53,14 +60,14 @@ export default function TodayScreen({}: Props) {
 
   return (
     <ScreenContainer>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <GradientView style={styles.header}>
           <Text style={styles.greeting}>{greeting}</Text>
           <Text style={styles.date}>{dateStr}</Text>
           {progress.total > 0 && (
             <View style={styles.progressRow}>
               <View style={styles.progressBar}>
-                <View style={[styles.progressFill, {width: `${progressPercent * 100}%`}]} />
+                <Animated.View style={[styles.progressFill, progressFillStyle]} />
               </View>
               <Text style={styles.progressLabel}>
                 {progress.completed === progress.total
@@ -71,11 +78,18 @@ export default function TodayScreen({}: Props) {
           )}
         </GradientView>
 
-        {eventsToday.length === 0 ? (
+        {isLoading ? (
+          <View style={styles.eventsList}>
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </View>
+        ) : eventsToday.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>🌙</Text>
             <Text style={styles.emptyTitle}>{t('today.free_day')}</Text>
             <Text style={styles.emptyMessage}>{t('today.free_day_message')}</Text>
+            <Text style={styles.emptyCta}>{t('today.free_day_cta')}</Text>
           </View>
         ) : (
           <View style={styles.eventsList}>
@@ -86,17 +100,19 @@ export default function TodayScreen({}: Props) {
         )}
       </ScrollView>
 
-      <TouchableOpacity onPress={handleAddRoutine} activeOpacity={0.85} style={styles.fabWrapperSecondary}>
-        <GradientView style={styles.fab}>
-          <Text style={styles.fabIcon}>➕</Text>
-        </GradientView>
-      </TouchableOpacity>
+      <View style={styles.fabContainer}>
+        <TouchableOpacity onPress={handleAddRoutine} activeOpacity={0.85} style={styles.fabWrapper}>
+          <GradientView style={styles.fabSmall}>
+            <Text style={styles.fabIconSmall}>➕</Text>
+          </GradientView>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={handleVoiceCreator} activeOpacity={0.85} style={styles.fabWrapper}>
-        <GradientView variant="ai" style={styles.fab}>
-          <Text style={styles.fabIcon}>🎤</Text>
-        </GradientView>
-      </TouchableOpacity>
+        <TouchableOpacity onPress={handleVoiceCreator} activeOpacity={0.85} style={styles.fabWrapper}>
+          <GradientView variant="ai" style={styles.fab}>
+            <Text style={styles.fabIcon}>🎤</Text>
+          </GradientView>
+        </TouchableOpacity>
+      </View>
     </ScreenContainer>
   );
 }
@@ -122,8 +138,11 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     emptyIcon: {fontSize: 64, marginBottom: spacing.lg},
     emptyTitle: {fontSize: typography.xxl, fontWeight: typography.semibold, color: colors.textPrimary, marginBottom: spacing.sm},
     emptyMessage: {fontSize: typography.md, color: colors.textSecondary, textAlign: 'center', paddingHorizontal: spacing.xxl},
-    fabWrapper: {position: 'absolute', bottom: 24, right: 24, ...shadows.lg, borderRadius: radius.full},
-    fabWrapperSecondary: {position: 'absolute', bottom: 96, right: 24, ...shadows.lg, borderRadius: radius.full},
+    emptyCta: {fontSize: typography.sm, color: colors.primary, fontWeight: typography.semibold, textAlign: 'center', marginTop: spacing.md},
+    fabContainer: {position: 'absolute', bottom: 24, right: 24, alignItems: 'center', gap: spacing.md},
+    fabWrapper: {...shadows.lg, borderRadius: radius.full},
     fab: {width: 60, height: 60, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
+    fabSmall: {width: 48, height: 48, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center'},
     fabIcon: {fontSize: 26},
+    fabIconSmall: {fontSize: 20},
   });

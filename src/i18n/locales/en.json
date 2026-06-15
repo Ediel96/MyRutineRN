@@ -22,6 +22,7 @@
     "greeting_evening": "Good evening",
     "free_day": "Free day! 🌙",
     "free_day_message": "No routines scheduled for today. Enjoy your day!",
+    "free_day_cta": "Tap ➕ to add your first routine",
     "progress": "{{completed}}/{{total}} completed",
     "day_complete": "Day complete! 🎉",
     "pomodoro_active": "Pomodoro in progress"

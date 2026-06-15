@@ -2038,6 +2038,28 @@ PODS:
     - RNNotifee/NotifeeCore (= 9.1.8)
   - RNNotifee/NotifeeCore (9.1.8):
     - React-Core
+  - RNReactNativeHapticFeedback (3.0.0):
+    - hermes-engine
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-Core-prebuilt
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-renderercss
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - ReactNativeDependencies
+    - Yoga
   - RNReanimated (4.4.1):
     - hermes-engine
     - RCTRequired
@@ -2318,6 +2340,7 @@ DEPENDENCIES:
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNKeychain (from `../node_modules/react-native-keychain`)
   - "RNNotifee (from `../node_modules/@notifee/react-native`)"
+  - RNReactNativeHapticFeedback (from `../node_modules/react-native-haptic-feedback`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
   - RNWorklets (from `../node_modules/react-native-worklets`)
@@ -2497,6 +2520,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-keychain"
   RNNotifee:
     :path: "../node_modules/@notifee/react-native"
+  RNReactNativeHapticFeedback:
+    :path: "../node_modules/react-native-haptic-feedback"
   RNReanimated:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
@@ -2592,6 +2617,7 @@ SPEC CHECKSUMS:
   RNGestureHandler: 87f8ed908df0e4f15c12180e844be3545cbd48df
   RNKeychain: 1b055a0ec36d058cb0a075e965d8c9d335e0c828
   RNNotifee: 4a6ee5c7deaf00e005050052d73ee6315dff7ec9
+  RNReactNativeHapticFeedback: 9fae19e7c07fe4e635bc9c1e0be9583668b40e06
   RNReanimated: 88a33069223ac7e44fec05f124981c17692cb972
   RNScreens: 032083414633a4d94cbcf08f8ab5019d72d1ba36
   RNWorklets: 5aa790586e72b486a463ce96f0ff70da06cdf8fe
