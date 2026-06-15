@@ -2,6 +2,8 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {useTranslation} from 'react-i18next';
+import LinearGradient from 'react-native-linear-gradient';
+import Animated, {useAnimatedStyle} from 'react-native-reanimated';
 import {
   CalendarContainer,
   CalendarBody,
@@ -9,6 +11,7 @@ import {
   type EventItem,
   type OnEventResponse,
   type PackedEvent,
+  type SizeAnimation,
 } from '@howljs/calendar-kit';
 import {useRoutinesStore} from '../stores/routinesStore';
 import {ScreenContainer} from '../components/ui';
@@ -57,6 +60,43 @@ const getWeekDates = (date: Date) => {
   const diffToMonday = dow === 0 ? -6 : 1 - dow;
   start.setDate(start.getDate() + diffToMonday);
   return Array.from({length: 7}, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+};
+
+// Bloque de evento del timeline: alterna densidad (compacto/medio/grande) según la altura
+// asignada por calendar-kit (size.height es un SharedValue, por eso usa useAnimatedStyle).
+const EventBlock = ({event, size, styles, defaultColor, t}: {
+  event: PackedEvent;
+  size: SizeAnimation;
+  styles: ReturnType<typeof createStyles>;
+  defaultColor: string;
+  t: (key: string, options?: Record<string, unknown>) => string;
+}) => {
+  const startTime = event.start.dateTime?.slice(11, 16);
+  const endTime = event.end.dateTime?.slice(11, 16);
+  const color = event.color ?? defaultColor;
+
+  const timeStyle = useAnimatedStyle(() => ({
+    opacity: size.height.value >= 40 ? 1 : 0,
+  }));
+  const tasksStyle = useAnimatedStyle(() => ({
+    opacity: size.height.value >= 70 ? 1 : 0,
+  }));
+
+  return (
+    <View style={[styles.eventCard, {backgroundColor: `${color}21`, borderLeftColor: color}]}>
+      <Text style={styles.eventTitle} numberOfLines={1}>
+        {event.emoji ? `${event.emoji} ` : ''}{event.title}
+      </Text>
+      <Animated.Text style={[styles.eventTime, timeStyle]} numberOfLines={1}>
+        {startTime} - {endTime}
+      </Animated.Text>
+      {event.subtasksCount > 0 && (
+        <Animated.Text style={[styles.eventTasks, tasksStyle]} numberOfLines={1}>
+          {t('calendar.tasks_count', {count: event.subtasksCount})}
+        </Animated.Text>
+      )}
+    </View>
+  );
 };
 
 export default function CalendarScreen({}: Props) {
@@ -151,22 +191,22 @@ export default function CalendarScreen({}: Props) {
     setSelectedDate(prev => (isSameDay(prev, date) ? prev : date));
   }, []);
 
-  const renderEvent = useCallback((event: PackedEvent) => {
-    const startTime = event.start.dateTime?.slice(11, 16);
-    const endTime = event.end.dateTime?.slice(11, 16);
-    const color = event.color ?? theme.colors.primary;
-    return (
-      <View style={[styles.eventCard, {backgroundColor: `${color}26`, borderLeftColor: color}]}>
-        <Text style={styles.eventTitle} numberOfLines={1}>
-          {event.emoji ? `${event.emoji} ` : ''}{event.title}
-        </Text>
-        <Text style={styles.eventTime}>{startTime} - {endTime}</Text>
-        {event.subtasksCount > 0 && (
-          <Text style={styles.eventTasks}>{t('calendar.tasks_count', {count: event.subtasksCount})}</Text>
-        )}
-      </View>
-    );
-  }, [styles, t, theme.colors.primary]);
+  const renderEvent = useCallback((event: PackedEvent, size: SizeAnimation) => (
+    <EventBlock event={event} size={size} styles={styles} defaultColor={theme.colors.primary} t={t} />
+  ), [styles, t, theme.colors.primary]);
+
+  // Línea "ahora": punto rojo + línea fina, sustituye al indicador por defecto de calendar-kit.
+  const nowIndicator = useMemo(() => (
+    <View style={styles.nowIndicator}>
+      <View style={styles.nowIndicatorLine} />
+      <View style={styles.nowIndicatorDot} />
+    </View>
+  ), [styles]);
+
+  // Líneas horizontales de la grilla: más finas y sutiles que el borde por defecto.
+  const renderCustomHorizontalLine = useCallback(() => (
+    <View style={styles.hourLine} />
+  ), [styles]);
 
   const initialLocales = useMemo(() => {
     const weekDayShort = SHORT_WEEKDAY_KEYS.map(d => t(`weekdays.${d}`));
@@ -184,6 +224,14 @@ export default function CalendarScreen({}: Props) {
       surface: theme.colors.surfaceAlt,
       onSurface: theme.colors.textSecondary,
     },
+    hourBackgroundColor: theme.colors.background,
+    hourBorderColor: theme.colors.surfaceAlt,
+    hourTextStyle: {
+      fontSize: theme.typography.xs,
+      fontWeight: theme.typography.medium,
+      color: theme.colors.textTertiary,
+    },
+    nowIndicatorColor: theme.colors.error,
   }), [theme]);
 
   return (
@@ -203,7 +251,18 @@ export default function CalendarScreen({}: Props) {
             <Pressable
               key={toLocalISODate(date)}
               style={[styles.dayCell, selected && styles.dayCellSelected]}
-              onPress={() => handleSelectDay(date)}>
+              onPress={() => handleSelectDay(date)}
+              accessibilityRole="button"
+              accessibilityLabel={`${t(`weekdays.${weekDay}`)} ${date.getDate()}`}
+              accessibilityState={{selected}}>
+              {selected && (
+                <LinearGradient
+                  colors={[...theme.gradients.primary]}
+                  start={{x: 0, y: 0}}
+                  end={{x: 0, y: 1}}
+                  style={[StyleSheet.absoluteFill, styles.dayCellGradient]}
+                />
+              )}
               <Text style={[styles.dayLabel, selected && styles.dayLabelSelected]}>
                 {t(`weekdays.${SHORT_WEEKDAY_KEYS[dayIndex]}`)}
               </Text>
@@ -239,7 +298,11 @@ export default function CalendarScreen({}: Props) {
           initialLocales={initialLocales}
           onDragEventEnd={handleDragEventEnd}
           onChange={handleDateChange}>
-          <CalendarBody renderEvent={renderEvent} />
+          <CalendarBody
+            renderEvent={renderEvent}
+            NowIndicatorComponent={nowIndicator}
+            renderCustomHorizontalLine={renderCustomHorizontalLine}
+          />
         </CalendarContainer>
       </View>
     </ScreenContainer>
@@ -248,9 +311,21 @@ export default function CalendarScreen({}: Props) {
 
 const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
   StyleSheet.create({
-    header: {paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.sm},
-    subtitle: {fontSize: typography.sm, color: colors.textTertiary, marginBottom: spacing.xxs},
-    title: {fontSize: typography.title, fontWeight: typography.bold, color: colors.textPrimary},
+    header: {paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md},
+    subtitle: {
+      fontSize: typography.xs,
+      fontWeight: typography.medium,
+      color: colors.textTertiary,
+      marginBottom: spacing.xxs,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    title: {
+      fontSize: typography.display,
+      fontWeight: typography.extrabold,
+      color: colors.textPrimary,
+      letterSpacing: -0.5,
+    },
     dayStrip: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -264,7 +339,14 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       marginHorizontal: spacing.xxs,
       borderRadius: radius.lg,
     },
-    dayCellSelected: {backgroundColor: colors.primary},
+    dayCellSelected: {
+      shadowColor: colors.primary,
+      shadowOffset: {width: 0, height: 4},
+      shadowOpacity: 0.35,
+      shadowRadius: 8,
+      elevation: 5,
+    },
+    dayCellGradient: {borderRadius: radius.lg},
     dayLabel: {fontSize: typography.xs, color: colors.textTertiary, marginBottom: spacing.xxs},
     dayLabelSelected: {color: colors.white},
     dayNumberWrap: {
@@ -281,8 +363,28 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     dayDotVisible: {opacity: 1, backgroundColor: colors.primary},
     dayDotSelected: {opacity: 1, backgroundColor: colors.white},
     calendarWrapper: {flex: 1},
-    eventCard: {flex: 1, borderRadius: radius.md, borderLeftWidth: 3, paddingHorizontal: spacing.xs, paddingVertical: 1, overflow: 'hidden'},
+    eventCard: {flex: 1, borderRadius: radius.md, borderLeftWidth: 3, paddingHorizontal: spacing.xs, paddingVertical: 2, overflow: 'hidden'},
     eventTitle: {fontSize: typography.xs, fontWeight: typography.semibold, color: colors.textPrimary},
     eventTime: {fontSize: typography.xs, color: colors.textSecondary},
     eventTasks: {fontSize: typography.xs, color: colors.textTertiary},
+    nowIndicator: {flex: 1},
+    nowIndicatorLine: {
+      position: 'absolute',
+      top: -0.75,
+      left: 0,
+      right: 0,
+      height: 1.5,
+      backgroundColor: colors.error,
+      opacity: 0.85,
+    },
+    nowIndicatorDot: {
+      position: 'absolute',
+      top: -5,
+      left: -5,
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.error,
+    },
+    hourLine: {height: 0.5, width: '100%', backgroundColor: colors.surfaceAlt},
   });
