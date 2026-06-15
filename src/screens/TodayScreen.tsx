@@ -64,26 +64,27 @@ export default function TodayScreen({}: Props) {
   return (
     <ScreenContainer>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <GradientView style={styles.header}>
-          <Text style={styles.greeting}>{greeting}</Text>
-          <Text style={styles.date}>{dateStr}</Text>
-          {progressTotal > 0 && (
-            <View style={styles.progressSection}>
-              <View style={styles.progressRow}>
+        <View style={styles.headerShadow}>
+          <GradientView style={styles.header}>
+            <Text style={styles.greeting}>{greeting}</Text>
+            <Text style={styles.date}>{dateStr}</Text>
+            {progressTotal > 0 && (
+              <View style={styles.progressSection}>
+                {/* 1. Barra primero */}
                 <View style={styles.progressBar}>
                   <Animated.View style={[styles.progressFill, progressFillStyle]} />
                 </View>
-                <Text style={styles.progressLabel} numberOfLines={1}>
-                  {t('today.progress', {completed: progressCompleted, total: progressTotal})}
-                </Text>
+                {/* 2. Conteo debajo: total realizadas + porcentaje */}
+                <View style={styles.progressMetaRow}>
+                  <Text style={styles.progressCount}>
+                    {t('today.progress', {completed: progressCompleted, total: progressTotal})}
+                  </Text>
+                  <Text style={styles.progressPct}>{Math.round(progressPct * 100)}%</Text>
+                </View>
               </View>
-              <View style={styles.progressMetaRow}>
-                <Text style={styles.progressMetaText}>{t('today.progress_done', {count: progressCompleted})}</Text>
-                <Text style={styles.progressMetaText}>{t('today.progress_total', {count: progressTotal})}</Text>
-              </View>
-            </View>
-          )}
-        </GradientView>
+            )}
+          </GradientView>
+        </View>
 
         {isLoading ? (
           <View style={styles.eventsList}>
@@ -128,27 +129,43 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
   StyleSheet.create({
     scrollView: {flex: 1},
     scrollContent: {paddingBottom: 120},
-    header: {
-      marginTop: 24,
-      marginHorizontal: 16,
-      borderRadius: 22,
-      paddingTop: 22,
-      paddingBottom: 22,
-      paddingHorizontal: 20,
+    progressBar: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: 'rgba(255,255,255,0.22)',
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 4,
+      backgroundColor: '#FFFFFF',
+    },
+    progressMetaRow: {
+      marginTop: spacing.sm,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    progressCount: {fontSize: 12, fontWeight: '600', color: '#FFFFFF'},
+    progressPct: {fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.7)'},
+    headerShadow: {
+      marginTop: spacing.xxl,
+      marginHorizontal: spacing.lg,
+      borderRadius: radius.xl,
+      ...shadows.md,
       shadowColor: '#5B7FFF',
-      shadowOpacity: 0.18,
-      shadowRadius: 12,
-      shadowOffset: {width: 0, height: 4},
-      elevation: 5,
+    },
+    header: {
+      borderRadius: radius.xl,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.xl,
+      overflow: 'hidden',
     },
     greeting: {fontSize: 30, lineHeight: 34, fontWeight: '700', color: '#FFFFFF'},
     date: {fontSize: 13, fontWeight: '400', color: 'rgba(255,255,255,0.72)', marginTop: 4},
-    progressSection: {marginTop: 20},
-    progressRow: {gap: 10},
-    progressBar: {height: 7, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden'},
-    progressFill: {height: '100%', borderRadius: 4, backgroundColor: '#FFFFFF'},
-    progressLabel: {alignSelf: 'flex-end', fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.72)'},
-    progressMetaRow: {marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'},
+    progressSection: {marginTop: spacing.xl},
+    progressRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.sm},
+    progressLabel: {fontSize: 12, fontWeight: '500', color: 'rgba(255,255,255,0.72)'},
     progressMetaText: {fontSize: 12, fontWeight: '600', color: '#FFFFFF'},
     eventsList: {paddingVertical: spacing.sm},
     emptyState: {flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 80},

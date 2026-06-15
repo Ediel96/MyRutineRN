@@ -6,6 +6,7 @@ import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useTranslation} from 'react-i18next';
 import {Text, View, StyleSheet} from 'react-native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import type {RootStackParamList, TabParamList} from './types';
 import {useTheme} from '../theme/useTheme';
@@ -46,6 +47,7 @@ const TabIcon: React.FC<{emoji: string; focused: boolean}> = ({emoji, focused}) 
 function TabNavigator() {
   const {t} = useTranslation();
   const {colors, typography} = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -56,8 +58,8 @@ function TabNavigator() {
           borderTopColor: colors.border,
           borderTopWidth: 1,
           paddingTop: 8,
-          paddingBottom: 8,
-          height: 64,
+          paddingBottom: insets.bottom + 8,
+          height: 64 + insets.bottom,
         },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textTertiary,
