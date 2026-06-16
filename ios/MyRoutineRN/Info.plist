@@ -35,6 +35,8 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Esta app necesita acceso a alarmas para despertarte a tiempo.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Used to record your voice so AI can create routines from it.</string>
 	<key>RCTNewArchEnabled</key>

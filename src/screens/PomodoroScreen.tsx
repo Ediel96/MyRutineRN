@@ -92,7 +92,7 @@ export default function PomodoroScreen() {
         backgroundColor={colors.background}
         barStyle={colors.textPrimary === '#FFFFFF' ? 'light-content' : 'dark-content'}
       />
-      <SafeAreaView style={styles.flex}>
+      <SafeAreaView style={[styles.flex, {backgroundColor: colors.background}]}>
         <View style={styles.header}>
           <TouchableOpacity
             onPress={handleBack}

@@ -26,6 +26,10 @@ export type RootStackParamList = {
   AISettings: undefined;
   NotificationDiagnostics: undefined;
   Logs: undefined;
+  AlarmList: undefined;
+  AlarmEditor: {alarmId?: string};
+  AlarmRinging: {alarmId: string};
+  AndroidPermissionsOnboarding: undefined;
 };
 
 // Screen props types

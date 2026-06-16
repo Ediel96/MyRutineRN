@@ -26,6 +26,10 @@ import HistoryScreen from '../screens/HistoryScreen';
 import AISettingsScreen from '../screens/AISettingsScreen';
 import NotificationDiagnosticsScreen from '../screens/NotificationDiagnosticsScreen';
 import LogsScreen from '../screens/LogsScreen';
+import {AlarmListScreen} from '../screens/AlarmListScreen';
+import {AlarmEditorScreen} from '../screens/AlarmEditorScreen';
+import {AlarmRingingScreen} from '../screens/AlarmRingingScreen';
+import {AndroidPermissionsOnboarding} from '../screens/AndroidPermissionsOnboarding';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -149,7 +153,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Pomodoro"
         component={PomodoroScreen}
-        options={{title: 'Pomodoro', presentation: 'fullScreenModal'}}
+        options={{headerShown: false, presentation: 'fullScreenModal'}}
       />
       <Stack.Screen
         name="VoiceCreator"
@@ -175,6 +179,26 @@ export default function RootNavigator() {
         name="Logs"
         component={LogsScreen}
         options={{title: 'Logs'}}
+      />
+      <Stack.Screen
+        name="AlarmList"
+        component={AlarmListScreen}
+        options={{headerShown: false}}
+      />
+      <Stack.Screen
+        name="AlarmEditor"
+        component={AlarmEditorScreen}
+        options={{title: 'Nueva alarma'}}
+      />
+      <Stack.Screen
+        name="AlarmRinging"
+        component={AlarmRingingScreen}
+        options={{headerShown: false, presentation: 'fullScreenModal'}}
+      />
+      <Stack.Screen
+        name="AndroidPermissionsOnboarding"
+        component={AndroidPermissionsOnboarding}
+        options={{title: 'Permisos'}}
       />
     </Stack.Navigator>
   );
