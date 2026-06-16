@@ -8,10 +8,22 @@ interface EventContextCardProps {
   eventTitle?: string;
   categoryEmoji?: string;
   subtaskTitle?: string;
-  textColor: string;
+  textColor?: string;
+  bgColor?: string;
+  borderColor?: string;
+  accentColor?: string;
 }
 
-export function EventContextCard({phaseLabel, eventTitle, categoryEmoji, subtaskTitle, textColor}: EventContextCardProps) {
+export function EventContextCard({
+  phaseLabel,
+  eventTitle,
+  categoryEmoji,
+  subtaskTitle,
+  textColor = '#FFFFFF',
+  bgColor,
+  borderColor,
+  accentColor,
+}: EventContextCardProps) {
   const theme = useTheme();
   const styles = createStyles(theme);
 
@@ -19,14 +31,20 @@ export function EventContextCard({phaseLabel, eventTitle, categoryEmoji, subtask
     return null;
   }
 
+  const bg = bgColor ?? `${textColor}14`;
+  const border = borderColor ?? `${textColor}26`;
+  const phaseColor = accentColor ?? `${textColor}B3`;
+  const titleColor = textColor;
+  const subtaskColor = `${textColor}CC`;
+
   return (
-    <View style={[styles.card, {backgroundColor: `${textColor}14`, borderColor: `${textColor}26`}]}>
-      <Text style={[styles.phase, {color: `${textColor}B3`}]}>{phaseLabel}</Text>
-      <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
+    <View style={[styles.card, {backgroundColor: bg, borderColor: border}]}>
+      <Text style={[styles.phase, {color: phaseColor}]}>{phaseLabel}</Text>
+      <Text style={[styles.title, {color: titleColor}]} numberOfLines={1}>
         {categoryEmoji ? `${categoryEmoji} ` : ''}{eventTitle}
       </Text>
       {!!subtaskTitle && (
-        <Text style={[styles.subtask, {color: `${textColor}CC`}]} numberOfLines={1}>
+        <Text style={[styles.subtask, {color: subtaskColor}]} numberOfLines={1}>
           → {subtaskTitle}
         </Text>
       )}

@@ -21,11 +21,15 @@ export function TomatoCounter({completed, cycleSize = 4, color}: TomatoCounterPr
       style={styles.row}
       accessibilityRole="text"
       accessibilityLabel={t('pomodoro.completed_count', {count: completed})}>
-      {Array.from({length: cycleSize}, (_, i) => (
-        <Text key={i} style={[styles.emoji, i < filled ? styles.filled : styles.empty, {color}]}>
-          🍅
-        </Text>
-      ))}
+      {Array.from({length: cycleSize}, (_, i) => {
+        const isFilled = i < filled;
+        return (
+          <View key={i} style={[styles.tomatoCol, isFilled ? styles.opaqueFull : styles.opaqueDim]}>
+            <Text style={styles.emoji}>🍅</Text>
+            {isFilled && <View style={[styles.dot, {backgroundColor: color}]} />}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -33,7 +37,9 @@ export function TomatoCounter({completed, cycleSize = 4, color}: TomatoCounterPr
 const createStyles = ({spacing}: AppTheme) =>
   StyleSheet.create({
     row: {flexDirection: 'row', gap: spacing.sm, justifyContent: 'center'},
+    tomatoCol: {alignItems: 'center', gap: 3},
     emoji: {fontSize: 22},
-    filled: {opacity: 1},
-    empty: {opacity: 0.28},
+    opaqueFull: {opacity: 1},
+    opaqueDim: {opacity: 0.28},
+    dot: {width: 4, height: 4, borderRadius: 2},
   });
