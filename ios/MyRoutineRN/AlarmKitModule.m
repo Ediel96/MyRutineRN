@@ -17,4 +17,9 @@ RCT_EXTERN_METHOD(cancelAlarm:(NSString *)alarmId
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 
+RCT_EXTERN_METHOD(snoozeAlarm:(NSString *)alarmId
+                  minutes:(NSInteger)minutes
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
+
 @end

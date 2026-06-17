@@ -43,6 +43,7 @@ interface RoutinesState {
   recordPomodoroForSubtask: (id: string, minutes: number) => void;
 
   toggleCompletedToday: (eventId: string) => void;
+  completeEventViaAlarm: (eventId: string) => void;
   isCompletedToday: (eventId: string) => boolean;
   calculateStreak: (eventId: string) => number;
   getTodayProgress: () => {completed: number; total: number};
@@ -230,6 +231,18 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
       storage.saveCompletionRecord(record);
       set(state => ({completions: [...state.completions, record]}));
     }
+  },
+
+  completeEventViaAlarm: (eventId) => {
+    if (get().isCompletedToday(eventId)) return;
+    const record: CompletionRecord = {
+      id: uuidv4(),
+      date: new Date().toISOString(),
+      notes: 'via alarm',
+      eventId,
+    };
+    storage.saveCompletionRecord(record);
+    set(state => ({completions: [...state.completions, record]}));
   },
 
   isCompletedToday: (eventId) => {

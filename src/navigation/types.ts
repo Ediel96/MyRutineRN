@@ -28,7 +28,7 @@ export type RootStackParamList = {
   Logs: undefined;
   AlarmList: undefined;
   AlarmEditor: {alarmId?: string};
-  AlarmRinging: {alarmId: string};
+  AlarmRinging: {alarmId: string; eventId?: string};
   AndroidPermissionsOnboarding: undefined;
 };
 

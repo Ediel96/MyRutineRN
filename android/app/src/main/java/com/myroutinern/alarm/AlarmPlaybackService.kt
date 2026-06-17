@@ -25,6 +25,7 @@ class AlarmPlaybackService : Service() {
     }
 
     private var currentAlarmId: String = ""
+    private var currentEventId: String? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -39,19 +40,24 @@ class AlarmPlaybackService : Service() {
         val volume   = intent?.getIntExtra("volume", 80) ?: 80
         val vibrate  = intent?.getBooleanExtra("vibrate", true) ?: true
         currentAlarmId = intent?.getStringExtra("alarmId") ?: ""
+        currentEventId = intent?.getStringExtra("eventId")
 
-        startForegroundNotification(currentAlarmId)
+        startForegroundNotification(currentAlarmId, currentEventId)
         playSound(soundUri, soundId, volume)
         if (vibrate) startVibration()
 
         return START_STICKY
     }
 
-    private fun startForegroundNotification(alarmId: String) {
+    private fun startForegroundNotification(alarmId: String, eventId: String?) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Reproducción de alarma", NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                // El sonido viene del MediaPlayer — silenciar el canal para evitar doble sonido
+                setSound(null, null)
+                enableVibration(false)
+            }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
@@ -61,6 +67,7 @@ class AlarmPlaybackService : Service() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("alarmId", alarmId)
             putExtra("navigateTo", "AlarmRinging")
+            if (eventId != null) putExtra("eventId", eventId)
         }
         val openPending = PendingIntent.getActivity(
             this, NOTIFICATION_ID, openIntent,

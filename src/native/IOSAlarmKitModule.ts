@@ -26,4 +26,7 @@ export const IOSAlarmKitModule = {
 
   cancelAlarm: (alarmId: string): Promise<boolean> =>
     NativeModule ? NativeModule.cancelAlarm(alarmId) : Promise.resolve(true),
+
+  snoozeAlarm: (alarmId: string, minutes: number): Promise<boolean> =>
+    NativeModule ? NativeModule.snoozeAlarm(alarmId, minutes) : Promise.resolve(true),
 };

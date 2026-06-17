@@ -13,6 +13,7 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         val soundId  = intent.getStringExtra("soundId")
         val volume   = intent.getIntExtra("volume", 80)
         val vibrate  = intent.getBooleanExtra("vibrate", true)
+        val eventId  = intent.getStringExtra("eventId")
 
         val serviceIntent = Intent(context, AlarmPlaybackService::class.java).apply {
             putExtra("alarmId", alarmId)
@@ -30,8 +31,11 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         val activityIntent = Intent(context, AlarmRingingActivity::class.java).apply {
             putExtra("alarmId", alarmId)
             putExtra("label", label)
+            if (eventId != null) putExtra("eventId", eventId)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION)
         }
         context.startActivity(activityIntent)
+
+        AndroidAlarmModule.emitAlarmFired(alarmId, eventId)
     }
 }

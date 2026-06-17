@@ -6,15 +6,44 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.facebook.react.bridge.*
+import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.Calendar
 
 class AndroidAlarmModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
+    companion object {
+        private var instance: AndroidAlarmModule? = null
+
+        fun emitAlarmFired(alarmId: String, eventId: String?) {
+            instance?.sendAlarmFiredEvent(alarmId, eventId)
+        }
+    }
+
+    init {
+        instance = this
+    }
+
     override fun getName() = "AndroidAlarmModule"
 
     private fun alarmManager(): AlarmManager =
         reactApplicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    @ReactMethod
+    fun addListener(eventName: String) {}
+
+    @ReactMethod
+    fun removeListeners(count: Int) {}
+
+    private fun sendAlarmFiredEvent(alarmId: String, eventId: String?) {
+        val params = Arguments.createMap().apply {
+            putString("alarmId", alarmId)
+            if (eventId != null) putString("eventId", eventId)
+        }
+        reactApplicationContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit("AlarmFired", params)
+    }
 
     @ReactMethod
     fun hasExactAlarmPermission(promise: Promise) {
@@ -59,8 +88,10 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
             val soundId = if (config.hasKey("soundId")) config.getString("soundId") else null
             val volume = if (config.hasKey("volume")) config.getInt("volume") else 80
             val vibrate = if (config.hasKey("vibrate")) config.getBoolean("vibrate") else true
+            val eventId = if (config.hasKey("eventId")) config.getString("eventId") else null
+            val triggerTimeMs = if (config.hasKey("triggerTimeMs")) config.getDouble("triggerTimeMs").toLong() else 0L
 
-            val triggerTime = nextTriggerTime(hour, minute)
+            val triggerTime = if (triggerTimeMs > 0) triggerTimeMs else nextTriggerTime(hour, minute)
 
             val intent = Intent(reactApplicationContext, AlarmTriggerReceiver::class.java).apply {
                 putExtra("alarmId", id)
@@ -69,6 +100,7 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
                 putExtra("soundId", soundId)
                 putExtra("volume", volume)
                 putExtra("vibrate", vibrate)
+                if (eventId != null) putExtra("eventId", eventId)
             }
 
             val pendingIntent = PendingIntent.getBroadcast(
@@ -121,7 +153,8 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
     @ReactMethod
     fun snoozeAlarm(alarmId: String, minutes: Int, promise: Promise) {
         try {
-            // Para snooze: detener el servicio de reproducción y reprogramar la alarma
+            val eventId = getCurrentActivity()?.intent?.getStringExtra("eventId")
+
             val stopIntent = Intent(reactApplicationContext, AlarmPlaybackService::class.java)
             reactApplicationContext.stopService(stopIntent)
 
@@ -131,6 +164,7 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
             val intent = Intent(reactApplicationContext, AlarmTriggerReceiver::class.java).apply {
                 putExtra("alarmId", alarmId)
                 putExtra("isSnooze", true)
+                if (eventId != null) putExtra("eventId", eventId)
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 reactApplicationContext,
@@ -154,6 +188,15 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun clearAlarmWindowFlags(promise: Promise) {
+        val activity = getCurrentActivity()
+        if (activity is com.myroutinern.MainActivity) {
+            activity.runOnUiThread { activity.clearAlarmScreenFlags() }
+        }
+        promise.resolve(null)
+    }
+
+    @ReactMethod
     fun getInitialAlarmIntent(promise: Promise) {
         try {
             val activity = getCurrentActivity()
@@ -162,6 +205,8 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
                 if (alarmId != null) {
                     val map = Arguments.createMap()
                     map.putString("alarmId", alarmId)
+                    val eventId = activity.intent?.getStringExtra("eventId")
+                    if (eventId != null) map.putString("eventId", eventId)
                     promise.resolve(map)
                 } else {
                     promise.resolve(null)

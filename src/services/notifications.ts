@@ -1,6 +1,7 @@
 // src/services/notifications.ts
 // Servicio de notificaciones - equivalente a Managers/NotificationManager.swift
 
+import {Platform} from 'react-native';
 import notifee, {
   AndroidImportance,
   TimestampTrigger,
@@ -8,6 +9,7 @@ import notifee, {
   AuthorizationStatus,
   RepeatFrequency,
 } from '@notifee/react-native';
+import {AndroidAlarmModule} from '../native/AndroidAlarmModule';
 import type {RoutineEvent, PendingNotification} from '../types';
 
 const CHANNEL_ID = 'myroutine-alarms';
@@ -34,7 +36,6 @@ export async function checkAuthorizationStatus(): Promise<AuthorizationStatus> {
 
 // Schedule alarm notifications for a routine
 export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<void> {
-  // Cancel existing notifications for this event
   await cancelNotificationsForEvent(event.id);
 
   if (!event.alarmEnabled) return;
@@ -48,6 +49,29 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
 
   const [alarmHour, alarmMinute] = event.alarmTime.split(':').map(Number);
 
+  if (Platform.OS === 'android') {
+    // Use AlarmManager.setAlarmClock() — guaranteed delivery, unaffected by Doze
+    for (const day of alarmDays) {
+      const triggerDate = getNextTriggerDate(day, alarmHour, alarmMinute);
+      if (!triggerDate) continue;
+      await AndroidAlarmModule.scheduleAlarm({
+        id: `${event.id}_alarm_${day}`,
+        hour: alarmHour,
+        minute: alarmMinute,
+        label: event.title,
+        repeatDays: [],
+        soundUri: null,
+        soundId: null,
+        volume: 80,
+        vibrate: true,
+        eventId: event.id,
+        triggerTimeMs: triggerDate.getTime(),
+      });
+    }
+    return;
+  }
+
+  // iOS — use notifee (AlarmKit is handled separately per alarm)
   for (const day of alarmDays) {
     const trigger = getNextTriggerDate(day, alarmHour, alarmMinute);
     if (!trigger) continue;
@@ -59,11 +83,6 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
         id: notificationId,
         title: `⏰ ${event.title}`,
         body: 'Time for your routine!',
-        android: {
-          channelId: CHANNEL_ID,
-          importance: AndroidImportance.HIGH,
-          pressAction: {id: 'default'},
-        },
         ios: {
           interruptionLevel: 'timeSensitive',
         },
@@ -76,9 +95,6 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
         type: TriggerType.TIMESTAMP,
         timestamp: trigger.getTime(),
         repeatFrequency: RepeatFrequency.WEEKLY,
-        alarmManager: {
-          allowWhileIdle: true,
-        },
       } as TimestampTrigger,
     );
   }
@@ -86,7 +102,6 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
 
 // Schedule reminder notification
 export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<void> {
-  // Cancel existing reminder
   await notifee.cancelNotification(`${event.id}_reminder`);
 
   if (event.notifyMinutesBefore <= 0) return;
@@ -136,6 +151,16 @@ export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<v
 
 // Cancel all notifications for an event
 export async function cancelNotificationsForEvent(eventId: string): Promise<void> {
+  if (Platform.OS === 'android') {
+    // Cancel AlarmManager alarms for all possible days (1–7)
+    const cancels = Array.from({length: 7}, (_, i) =>
+      AndroidAlarmModule.cancelAlarm(`${eventId}_alarm_${i + 1}`).catch(() => {}),
+    );
+    await Promise.all(cancels);
+    // Also cancel any notifee reminder
+    await notifee.cancelNotification(`${eventId}_reminder`).catch(() => {});
+    return;
+  }
   const notifications = await notifee.getTriggerNotificationIds();
   const toCancel = notifications.filter(id => id.startsWith(`${eventId}_`));
   for (const id of toCancel) {
@@ -152,19 +177,16 @@ export async function cancelAllNotifications(): Promise<void> {
 export async function getPendingNotifications(): Promise<PendingNotification[]> {
   const triggers = await notifee.getTriggerNotificationIds();
 
-  // notifee doesn't provide full details of pending triggers
-  // This is a simplified implementation
   const pending: PendingNotification[] = [];
 
   for (const id of triggers) {
-    // Extract event info from ID pattern
     if (id.includes('_alarm_')) {
       const parts = id.split('_alarm_');
       pending.push({
         id,
         title: 'Alarm',
         body: 'Scheduled alarm',
-        date: new Date(), // Would need actual date from notifee
+        date: new Date(),
         routineId: parts[0],
         routineTitle: 'Routine',
       });
@@ -199,22 +221,29 @@ export async function rescheduleAllNotifications(events: RoutineEvent[]): Promis
 }
 
 // Helper: get next date for a weekday at specific time
-function getNextTriggerDate(dayOfWeek: number, hour: number, minute: number): Date | null {
+// dayOfWeek: iOS weekday (1=Sun, 2=Mon, ..., 7=Sat) OR JS weekday (0-6)
+export function getNextTriggerDate(dayOfWeek: number, hour: number, minute: number): Date | null {
   const now = new Date();
   const trigger = new Date();
 
   trigger.setHours(hour, minute, 0, 0);
 
-  // iOS weekday: 1=Sun, 2=Mon, ..., 7=Sat
-  // JavaScript: 0=Sun, 1=Mon, ..., 6=Sat
-  const targetDay = (dayOfWeek + 6) % 7;
+  // iOS weekday (1–7) → JS weekday (0–6)
+  const targetDay = dayOfWeek >= 1 && dayOfWeek <= 7
+    ? (dayOfWeek + 6) % 7   // iOS: 1=Sun→0, 2=Mon→1, …, 7=Sat→6
+    : dayOfWeek;             // already JS weekday
+
   const currentDay = now.getDay();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
 
   let daysDiff = targetDay - currentDay;
 
-  if (daysDiff < 0 || (daysDiff === 0 && (hour < currentHour || (hour === currentHour && minute <= currentMinute)))) {
+  if (
+    daysDiff < 0 ||
+    (daysDiff === 0 &&
+      (hour < currentHour || (hour === currentHour && minute <= currentMinute)))
+  ) {
     daysDiff += 7;
   }
 

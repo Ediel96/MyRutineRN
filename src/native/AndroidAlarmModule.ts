@@ -1,5 +1,6 @@
 // src/native/AndroidAlarmModule.ts
-import {NativeModules, Platform} from 'react-native';
+import {NativeModules, NativeEventEmitter, Platform} from 'react-native';
+import type {EmitterSubscription} from 'react-native';
 
 type ScheduleConfig = {
   id: string;
@@ -11,9 +12,14 @@ type ScheduleConfig = {
   soundId: string | null;
   volume: number;
   vibrate: boolean;
+  eventId?: string;
+  triggerTimeMs?: number;
 };
 
+type AlarmFiredPayload = {alarmId: string; eventId?: string};
+
 const NativeModule = Platform.OS === 'android' ? NativeModules.AndroidAlarmModule : null;
+const emitter = NativeModule ? new NativeEventEmitter(NativeModule) : null;
 
 export const AndroidAlarmModule = {
   hasExactAlarmPermission: (): Promise<boolean> =>
@@ -39,6 +45,14 @@ export const AndroidAlarmModule = {
   snoozeAlarm: (alarmId: string, minutes: number): Promise<boolean> =>
     NativeModule ? NativeModule.snoozeAlarm(alarmId, minutes) : Promise.resolve(true),
 
-  getInitialAlarmIntent: (): Promise<{alarmId: string} | null> =>
+  getInitialAlarmIntent: (): Promise<AlarmFiredPayload | null> =>
     NativeModule ? NativeModule.getInitialAlarmIntent() : Promise.resolve(null),
+
+  clearAlarmWindowFlags: (): Promise<void> =>
+    NativeModule ? NativeModule.clearAlarmWindowFlags() : Promise.resolve(),
+
+  addAlarmListener: (
+    callback: (data: AlarmFiredPayload) => void,
+  ): EmitterSubscription | null =>
+    emitter ? emitter.addListener('AlarmFired', callback) : null,
 };

@@ -131,6 +131,49 @@ class IOSAlarmKitModule: NSObject {
     #endif
   }
 
+  // MARK: - snoozeAlarm
+
+  @objc
+  func snoozeAlarm(_ alarmId: String,
+                   minutes: Int,
+                   resolver resolve: @escaping RCTPromiseResolveBlock,
+                   rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard #available(iOS 26.0, *) else { resolve(true); return }
+    guard let uuid = UUID(uuidString: alarmId) else {
+      reject("INVALID_ID", "Alarm id is not a valid UUID", nil)
+      return
+    }
+    #if canImport(AlarmKit)
+    Task {
+      do {
+        try? await AlarmManager.shared.cancel(id: uuid)
+
+        let snoozeDate = Date().addingTimeInterval(TimeInterval(minutes * 60))
+        let components = Calendar.current.dateComponents([.hour, .minute], from: snoozeDate)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+
+        let schedule = AlarmSchedule.fixed(DateComponents(hour: hour, minute: minute))
+        let stopButton = AlarmPresentation.Alert.Button(title: "Detener", systemImageName: "stop.fill")
+        let snoozeButton = AlarmPresentation.Alert.Button(title: "Posponer", systemImageName: "moon.zzz.fill")
+        let alert = AlarmPresentation.Alert(
+          title: "Alarma pospuesta",
+          stopButton: stopButton,
+          snoozeButton: snoozeButton
+        )
+        let presentation = AlarmPresentation(alert: alert, tintColor: .orange)
+        let configuration = AlarmConfiguration(schedule: schedule, presentation: presentation)
+        try await AlarmManager.shared.schedule(id: uuid, with: configuration)
+        resolve(true)
+      } catch {
+        reject("SNOOZE_ERROR", error.localizedDescription, error)
+      }
+    }
+    #else
+    resolve(true)
+    #endif
+  }
+
   // MARK: - cancelAlarm
 
   @objc
