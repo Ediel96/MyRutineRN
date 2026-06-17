@@ -6,6 +6,18 @@ import {v4 as uuidv4} from 'uuid';
 import type {RoutineEvent, Subtask, CompletionRecord} from '../types';
 import {WeekDay, EventCategory, TaskStatus, MasteryLevel} from '../types/enums';
 import * as storage from '../services/storage';
+import {
+  scheduleAlarmsForRoutine,
+  scheduleReminderForRoutine,
+  cancelNotificationsForEvent,
+  rescheduleAllNotifications,
+} from '../services/notifications';
+
+function runAsync(task: Promise<unknown>) {
+  task.catch(() => {
+    // No-op: fallos de notificaciones no deben romper estado local de rutinas.
+  });
+}
 
 interface RoutinesState {
   events: RoutineEvent[];
@@ -50,6 +62,8 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     const completions = storage.getAllCompletionRecords();
     set({events, subtasks, completions, isLoading: false});
 
+    runAsync(rescheduleAllNotifications(events));
+
     // Load defaults if first launch
     if (!storage.hasLoadedDefaults() && events.length === 0) {
       get().loadDefaults();
@@ -67,19 +81,28 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
     };
     storage.saveRoutineEvent(event);
     set(state => ({events: [...state.events, event]}));
+    runAsync(scheduleAlarmsForRoutine(event));
+    runAsync(scheduleReminderForRoutine(event));
     return id;
   },
 
   updateEvent: (id, updates) => {
-    const now = new Date().toISOString();
-    set(state => {
-      const events = state.events.map(e =>
-        e.id === id ? {...e, ...updates, updatedAt: now} : e,
-      );
-      const updated = events.find(e => e.id === id);
-      if (updated) storage.saveRoutineEvent(updated);
-      return {events};
-    });
+    const current = get().events.find(e => e.id === id);
+    if (!current) return;
+
+    const updated: RoutineEvent = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+
+    storage.saveRoutineEvent(updated);
+    set(state => ({
+      events: state.events.map(e => (e.id === id ? updated : e)),
+    }));
+
+    runAsync(scheduleAlarmsForRoutine(updated));
+    runAsync(scheduleReminderForRoutine(updated));
   },
 
   deleteEvent: (id) => {
@@ -89,6 +112,7 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
       subtasks: state.subtasks.filter(s => s.eventId !== id),
       completions: state.completions.filter(c => c.eventId !== id),
     }));
+    runAsync(cancelNotificationsForEvent(id));
   },
 
   getEventById: (id) => {
@@ -184,7 +208,6 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
   toggleCompletedToday: (eventId) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString();
 
     const existing = get().completions.find(c => {
       const cDate = new Date(c.date);

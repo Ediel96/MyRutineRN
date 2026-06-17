@@ -9,7 +9,7 @@ import {ScreenContainer, Card, TextField, Button} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 import {EventCategory, WeekDay} from '../types/enums';
-import {EVENT_CATEGORY_CONFIG} from '../types/enums';
+import {EVENT_CATEGORY_CONFIG, WEEKDAY_CONFIG} from '../types/enums';
 
 type Props = RootStackScreenProps<'EventEditor'>;
 
@@ -70,17 +70,46 @@ export default function EventEditorScreen() {
   };
 
   const handleSave = () => {
+    const buildEventDataForDay = (day: WeekDay) => ({
+      title,
+      routineDescription: description,
+      purpose,
+      objectives,
+      startTime,
+      endTime,
+      categoryRaw: category,
+      notes: '',
+      alarmEnabled,
+      alarmTime: startTime,
+      alarmDaysRaw: String(WEEKDAY_CONFIG[day].iOSWeekday),
+      notifyMinutesBefore: 0,
+      googleSynced: false,
+      dayRaw: day,
+    });
+
     const baseData = {
-      title, routineDescription: description, purpose, objectives,
-      startTime, endTime, categoryRaw: category,
-      notes: '', alarmEnabled, alarmTime: '08:50', alarmDaysRaw: '2,3,4,5,6',
-      notifyMinutesBefore: 0, googleSynced: false,
+      title,
+      routineDescription: description,
+      purpose,
+      objectives,
+      startTime,
+      endTime,
+      categoryRaw: category,
+      notes: '',
+      alarmEnabled,
+      alarmTime: startTime,
+      notifyMinutesBefore: 0,
+      googleSynced: false,
     };
     if (existingEvent) {
-      updateEvent(existingEvent.id, {...baseData, dayRaw: days[0]});
-      days.slice(1).forEach(d => addEvent({...baseData, dayRaw: d}));
+      updateEvent(existingEvent.id, {
+        ...baseData,
+        dayRaw: days[0],
+        alarmDaysRaw: String(WEEKDAY_CONFIG[days[0]].iOSWeekday),
+      });
+      days.slice(1).forEach(d => addEvent(buildEventDataForDay(d)));
     } else {
-      days.forEach(d => addEvent({...baseData, dayRaw: d}));
+      days.forEach(d => addEvent(buildEventDataForDay(d)));
     }
     navigation.goBack();
   };

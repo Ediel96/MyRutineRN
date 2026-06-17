@@ -12,6 +12,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import {useAlarmStore} from '../stores/alarmStore';
+import {useSettingsStore} from '../stores/settingsStore';
 import {CustomSoundPicker} from '../components/alarm/CustomSoundPicker';
 import type {AlarmSoundSource, AlarmRepeatDay} from '../types/alarm';
 import type {NativeStackScreenProps} from '@react-navigation/native-stack';
@@ -33,6 +34,11 @@ export function AlarmEditorScreen({route, navigation}: Props) {
   const theme = useTheme();
   const styles = createStyles(theme);
   const {alarms, createAlarm, updateAlarm} = useAlarmStore();
+  const {
+    alarmDefaultVibrate,
+    alarmDefaultSnoozeEnabled,
+    alarmDefaultSnoozeMinutes,
+  } = useSettingsStore();
 
   const editId = route.params?.alarmId;
   const existing = editId ? alarms.find(a => a.id === editId) : undefined;
@@ -47,12 +53,12 @@ export function AlarmEditorScreen({route, navigation}: Props) {
     existing?.sound ?? DEFAULT_SOUND,
   );
   const [volume, _setVolume] = useState(existing?.volume ?? 80);
-  const [vibrate, setVibrate] = useState(existing?.vibrate ?? true);
+  const [vibrate, setVibrate] = useState(existing?.vibrate ?? alarmDefaultVibrate);
   const [snoozeEnabled, setSnoozeEnabled] = useState(
-    existing?.snoozeEnabled ?? true,
+    existing?.snoozeEnabled ?? alarmDefaultSnoozeEnabled,
   );
   const [snoozeMinutes, setSnoozeMinutes] = useState<5 | 10 | 15 | 30>(
-    existing?.snoozeMinutes ?? 5,
+    existing?.snoozeMinutes ?? alarmDefaultSnoozeMinutes,
   );
   const [saving, setSaving] = useState(false);
 

@@ -18,7 +18,6 @@ import Animated, {
   withTiming,
   runOnJS,
 } from 'react-native-reanimated';
-import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import HapticFeedback from 'react-native-haptic-feedback';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
@@ -31,17 +30,13 @@ import {
 import {useTheme, AppTheme} from '../theme/useTheme';
 import {useRoutinesStore, getActiveSubtasks, getSubtasksProgress} from '../stores/routinesStore';
 import {usePomodoroStore} from '../stores/pomodoroStore';
+import {EventActionsMenu} from './EventActionsMenu';
 
 interface TodayEventRowProps {
   event: RoutineEvent;
 }
 
 type EventState = 'pending' | 'ongoing' | 'completed' | 'missed';
-
-// Ancho de cada botón de acción del swipe (icono + etiqueta)
-const ACTION_WIDTH = 72;
-const LEFT_ACTIONS_WIDTH = ACTION_WIDTH * 2; // Alarma + Pomodoro
-const RIGHT_ACTIONS_WIDTH = ACTION_WIDTH * 2; // Editar + Eliminar
 
 function getEventState(event: RoutineEvent, isCompleted: boolean): EventState {
   if (isCompleted) return 'completed';
@@ -64,7 +59,7 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const {t} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {colors, spacing} = theme;
+  const {spacing} = theme;
   const {toggleCompletedToday, isCompletedToday, calculateStreak, getSubtasksByEventId, updateEvent, deleteEvent} =
     useRoutinesStore();
 
@@ -76,9 +71,13 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   const streak = calculateStreak(event.id);
 
   const categoryConfig = EVENT_CATEGORY_CONFIG[event.categoryRaw as EventCategory];
+  const categoryColor = categoryConfig?.color || theme.colors.textTertiary;
 
   const isActivePomodoro = usePomodoroStore(s => s.running && s.eventTitle === event.title);
   const hasSubtasks = activeSubtasks.length > 0;
+
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const handleToggle = () => {
     HapticFeedback.trigger('impactLight', {enableVibrateFallback: true, ignoreAndroidSystemSettings: false});
@@ -93,38 +92,6 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
     checkScale.value = withSpring(completed ? 1 : 0, {damping: 12});
   }, [completed, checkScale]);
   const checkAnimStyle = useAnimatedStyle(() => ({transform: [{scale: checkScale.value}]}));
-
-  // ===== Swipe horizontal (Gesture.Pan) =====
-  const translateX = useSharedValue(0);
-  const startX = useSharedValue(0);
-
-  const closeRow = () => {
-    translateX.value = withSpring(0, {damping: 18, stiffness: 200});
-  };
-
-  const panGesture = Gesture.Pan()
-    .activeOffsetX([-10, 10])
-    .failOffsetY([-15, 15])
-    .onStart(() => {
-      startX.value = translateX.value;
-    })
-    .onUpdate(e => {
-      const next = startX.value + e.translationX;
-      translateX.value = Math.max(-RIGHT_ACTIONS_WIDTH, Math.min(LEFT_ACTIONS_WIDTH, next));
-    })
-    .onEnd(() => {
-      if (translateX.value > ACTION_WIDTH) {
-        translateX.value = withSpring(LEFT_ACTIONS_WIDTH, {damping: 18, stiffness: 200});
-      } else if (translateX.value < -ACTION_WIDTH) {
-        translateX.value = withSpring(-RIGHT_ACTIONS_WIDTH, {damping: 18, stiffness: 200});
-      } else {
-        translateX.value = withSpring(0, {damping: 18, stiffness: 200});
-      }
-    });
-
-  const translateStyle = useAnimatedStyle(() => ({
-    transform: [{translateX: translateX.value}],
-  }));
 
   // ===== Colapso animado al eliminar =====
   const measuredHeight = useSharedValue(0);
@@ -143,236 +110,182 @@ export default function TodayEventRow({event}: TodayEventRowProps) {
   }));
 
   const handlePress = () => {
-    if (translateX.value !== 0) {
-      closeRow();
-      return;
-    }
     navigation.navigate('EventDetail', {eventId: event.id});
   };
 
   const handleAlarm = () => {
-    closeRow();
     updateEvent(event.id, {alarmEnabled: !event.alarmEnabled});
   };
 
   const handlePomodoro = () => {
-    closeRow();
     navigation.navigate('Pomodoro', {eventId: event.id});
   };
 
   const handleEdit = () => {
-    closeRow();
     navigation.navigate('EventEditor', {eventId: event.id});
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      t('routine.delete'),
-      t('routine.delete_confirm'),
-      [
-        {text: t('common.cancel'), style: 'cancel'},
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => {
-            translateX.value = withSpring(0, {damping: 18, stiffness: 200});
-            collapseProgress.value = withTiming(1, {duration: 250}, finished => {
-              if (finished) {
-                runOnJS(deleteEvent)(event.id);
-              }
-            });
+    setMenuVisible(false);
+    setTimeout(() => {
+      Alert.alert(
+        t('routine.delete'),
+        t('routine.delete_confirm'),
+        [
+          {text: t('common.cancel'), style: 'cancel'},
+          {
+            text: t('common.delete'),
+            style: 'destructive',
+            onPress: () => {
+              collapseProgress.value = withTiming(1, {duration: 250}, finished => {
+                if (finished) {
+                  runOnJS(deleteEvent)(event.id);
+                }
+              });
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    }, 200);
   };
-
-  const [expanded, setExpanded] = useState(false);
 
   return (
     <Animated.View style={[styles.collapseWrapper, collapseStyle]} onLayout={handleLayout}>
-      <View style={styles.rowWrapper}>
-        {/* Swipe derecha → Alarma + Pomodoro */}
-        <View style={styles.leftActions}>
-          <SwipeActionButton
-            icon="🔔"
-            label={t('routine.alarm')}
-            backgroundColor={colors.accentWarm}
-            onPress={handleAlarm}
-            theme={theme}
-          />
-          <SwipeActionButton
-            icon="⏱"
-            label={t('pomodoro.title')}
-            backgroundColor={colors.accentSecondary}
-            onPress={handlePomodoro}
-            theme={theme}
-          />
-        </View>
+      <Animated.View style={rowAnimStyle}>
+        <TouchableOpacity
+          style={[
+            styles.container,
+            {borderLeftColor: categoryColor},
+            state === 'missed' && styles.missed,
+            state === 'completed' && styles.completed,
+          ]}
+          onPress={handlePress}
+          onPressIn={() => { scale.value = withSpring(0.97); }}
+          onPressOut={() => { scale.value = withSpring(1); }}
+          activeOpacity={1}>
 
-        {/* Swipe izquierda → Editar + Eliminar */}
-        <View style={styles.rightActions}>
-          <SwipeActionButton
-            icon="✏️"
-            label={t('common.edit')}
-            backgroundColor={colors.primary}
-            onPress={handleEdit}
-            theme={theme}
-          />
-          <SwipeActionButton
-            icon="🗑"
-            label={t('common.delete')}
-            backgroundColor={colors.error}
-            onPress={handleDelete}
-            theme={theme}
-          />
-        </View>
+          {/* Check button */}
+          <Pressable style={styles.checkButton} onPress={handleToggle} hitSlop={theme.hitSlop}>
+            <View style={[styles.checkCircle, completed && styles.checkCircleBorder]}>
+              <Animated.View style={[styles.checkFill, checkAnimStyle]} />
+              {completed && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+          </Pressable>
 
-        <GestureDetector gesture={panGesture}>
-          <Animated.View style={translateStyle}>
-            <Animated.View style={rowAnimStyle}>
-              <TouchableOpacity
-                style={[
-                  styles.container,
-                  {borderLeftColor: categoryConfig?.color || colors.textTertiary},
-                  state === 'missed' && styles.missed,
-                  state === 'completed' && styles.completed,
-                ]}
-                onPress={handlePress}
-                onPressIn={() => { scale.value = withSpring(0.97); }}
-                onPressOut={() => { scale.value = withSpring(1); }}
-                activeOpacity={0.7}>
-                {/* Check button */}
-                <Pressable style={styles.checkButton} onPress={handleToggle} hitSlop={theme.hitSlop}>
-                  <View
-                    style={[
-                      styles.checkCircle,
-                      completed && styles.checkCircleBorder,
-                    ]}>
-                    <Animated.View style={[styles.checkFill, checkAnimStyle]} />
-                    {completed && <Text style={styles.checkmark}>✓</Text>}
+          {/* Content */}
+          <View style={styles.content}>
+            {/* Top row: hora izquierda | indicadores derecha */}
+            <View style={styles.topRow}>
+              <View style={styles.timeContainer}>
+                <Text style={styles.time}>{event.startTime} · {event.endTime}</Text>
+                {state === 'ongoing' && (
+                  <View style={styles.nowBadge}>
+                    <Text style={styles.nowBadgeText}>{t('common.now')}</Text>
                   </View>
-                </Pressable>
+                )}
+              </View>
 
-                {/* Content */}
-                <View style={styles.content}>
-                  {/* Time and now badge */}
-                  <View style={styles.timeRow}>
-                    <Text style={styles.time}>
-                      {event.startTime} · {event.endTime}
-                    </Text>
-                    {state === 'ongoing' && (
-                      <View style={styles.nowBadge}>
-                        <Text style={styles.nowBadgeText}>{t('common.now')}</Text>
-                      </View>
-                    )}
-                  </View>
+              <View style={styles.indicators}>
+                {/* Campana — SOLO indicador de estado, no interactivo */}
+                {event.alarmEnabled && (
+                  <Text
+                    style={[styles.bellIcon, {color: `${categoryColor}B3`}]}
+                    accessibilityLabel="Alarma activa"
+                    accessibilityRole="image">
+                    🔔
+                  </Text>
+                )}
 
-                  {/* Title with category emoji */}
-                  <View style={styles.titleRow}>
-                    <Text
-                      style={[
-                        styles.title,
-                        completed && styles.titleCompleted,
-                      ]}>
-                      {categoryConfig?.emoji} {event.title}
-                    </Text>
-                    {event.alarmEnabled && <Text style={styles.alarmIcon}>🔔</Text>}
-                  </View>
+                {/* Kebab — abre menú contextual */}
+                <TouchableOpacity
+                  style={styles.kebabBtn}
+                  onPress={() => setMenuVisible(true)}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                  accessibilityLabel={`Más opciones para ${event.title}`}
+                  accessibilityRole="button">
+                  <Text style={styles.kebabIcon}>⋮</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
 
-                  {/* Purpose */}
-                  {event.purpose && (
-                    <Text style={styles.purpose} numberOfLines={1}>
-                      {event.purpose}
-                    </Text>
-                  )}
+            {/* Title */}
+            <View style={styles.titleRow}>
+              <Text
+                style={[styles.title, completed && styles.titleCompleted]}
+                numberOfLines={1}>
+                {categoryConfig?.emoji} {event.title}
+              </Text>
+            </View>
 
-                  {/* Subtasks progress */}
-                  {subtasks.length > 0 && (
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            {width: `${progress * 100}%`},
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.progressText}>
-                        {subtasks.filter(s => s.statusRaw === TaskStatus.done).length}/{subtasks.length}
-                      </Text>
-                    </View>
-                  )}
+            {/* Purpose */}
+            {event.purpose ? (
+              <Text style={styles.purpose} numberOfLines={1}>
+                {event.purpose}
+              </Text>
+            ) : null}
 
-                  {/* Streak */}
-                  {streak > 1 && (
-                    <Text style={styles.streak}>🔥 {streak}</Text>
-                  )}
-
-                  {/* Active Pomodoro indicator */}
-                  {isActivePomodoro && (
-                    <View style={styles.pomodoroIndicator}>
-                      <Text style={styles.pomodoroText}>
-                        🍅 {t('today.pomodoro_active')}
-                      </Text>
-                    </View>
-                  )}
+            {/* Subtasks progress */}
+            {subtasks.length > 0 && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, {width: `${progress * 100}%`}]} />
                 </View>
+                <Text style={styles.progressText}>
+                  {subtasks.filter(s => s.statusRaw === TaskStatus.done).length}/{subtasks.length}
+                </Text>
+              </View>
+            )}
 
-                {/* Expand/collapse subtasks */}
-                {hasSubtasks && (
-                  <View style={styles.actions}>
-                    <TouchableOpacity
-                      style={styles.actionButton}
-                      onPress={() => setExpanded(!expanded)}
-                      hitSlop={theme.hitSlop}>
-                      <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+            {/* Streak */}
+            {streak > 1 && <Text style={styles.streak}>🔥 {streak}</Text>}
 
-                {/* Expanded subtasks */}
-                {expanded && hasSubtasks && (
-                  <View style={styles.subtasksContainer}>
-                    {activeSubtasks.map(subtask => (
-                      <SubtaskRow
-                        key={subtask.id}
-                        subtask={subtask}
-                        eventId={event.id}
-                      />
-                    ))}
-                  </View>
-                )}
+            {/* Active Pomodoro indicator */}
+            {isActivePomodoro && (
+              <View style={styles.pomodoroIndicator}>
+                <Text style={styles.pomodoroText}>
+                  🍅 {t('today.pomodoro_active')}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Expand/collapse subtasks */}
+          {hasSubtasks && (
+            <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => setExpanded(!expanded)}
+                hitSlop={theme.hitSlop}>
+                <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
               </TouchableOpacity>
-            </Animated.View>
-          </Animated.View>
-        </GestureDetector>
-      </View>
+            </View>
+          )}
+
+          {/* Expanded subtasks */}
+          {expanded && hasSubtasks && (
+            <View style={styles.subtasksContainer}>
+              {activeSubtasks.map(subtask => (
+                <SubtaskRow key={subtask.id} subtask={subtask} eventId={event.id} />
+              ))}
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
+
+      <EventActionsMenu
+        visible={menuVisible}
+        title={event.title}
+        startTime={event.startTime}
+        endTime={event.endTime}
+        categoryEmoji={categoryConfig?.emoji ?? ''}
+        alarmEnabled={event.alarmEnabled}
+        onClose={() => setMenuVisible(false)}
+        onAlarm={() => { setMenuVisible(false); handleAlarm(); }}
+        onPomodoro={() => { setMenuVisible(false); handlePomodoro(); }}
+        onEdit={() => { setMenuVisible(false); handleEdit(); }}
+        onDelete={handleDelete}
+      />
     </Animated.View>
-  );
-}
-
-interface SwipeActionButtonProps {
-  icon: string;
-  label: string;
-  backgroundColor: string;
-  onPress: () => void;
-  theme: AppTheme;
-}
-
-function SwipeActionButton({icon, label, backgroundColor, onPress, theme}: SwipeActionButtonProps) {
-  const styles = createStyles(theme);
-  const textColor = backgroundColor === theme.colors.accentWarm ? theme.colors.textAccent : theme.colors.white;
-  return (
-    <TouchableOpacity
-      style={[styles.swipeActionButton, {backgroundColor}]}
-      onPress={onPress}
-      activeOpacity={0.8}>
-      <Text style={styles.swipeActionIcon}>{icon}</Text>
-      <Text style={[styles.swipeActionLabel, {color: textColor}]} numberOfLines={1}>
-        {label}
-      </Text>
-    </TouchableOpacity>
   );
 }
 
@@ -385,7 +298,6 @@ function SubtaskRow({subtask, eventId}: SubtaskRowProps) {
   const navigation = useNavigation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {advanceSubtaskStatus} = useRoutinesStore();
   const statusConfig = TASK_STATUS_CONFIG[subtask.statusRaw as TaskStatus];
 
   const handlePress = () => {
@@ -410,41 +322,6 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     collapseWrapper: {
       marginHorizontal: spacing.lg,
     },
-    rowWrapper: {
-      borderRadius: radius.xl,
-      overflow: 'hidden',
-    },
-    leftActions: {
-      position: 'absolute',
-      left: 0,
-      top: 0,
-      bottom: 0,
-      width: LEFT_ACTIONS_WIDTH,
-      flexDirection: 'row',
-    },
-    rightActions: {
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      bottom: 0,
-      width: RIGHT_ACTIONS_WIDTH,
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-    },
-    swipeActionButton: {
-      width: ACTION_WIDTH,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    swipeActionIcon: {
-      fontSize: typography.lg,
-      marginBottom: spacing.xxs,
-    },
-    swipeActionLabel: {
-      fontSize: typography.xs,
-      fontWeight: typography.semibold,
-      color: colors.white,
-    },
     container: {
       flexDirection: 'row',
       backgroundColor: colors.surface,
@@ -452,6 +329,8 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       borderLeftWidth: 4,
       borderWidth: 1,
       borderColor: colors.border,
+      borderRadius: radius.xl,
+      overflow: 'hidden',
     },
     missed: {
       backgroundColor: colors.surfaceAlt,
@@ -496,17 +375,23 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     content: {
       flex: 1,
     },
-    timeRow: {
+    topRow: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       marginBottom: spacing.xs,
+    },
+    timeContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flex: 1,
     },
     time: {
       fontSize: typography.sm,
       color: colors.textSecondary,
     },
     nowBadge: {
-      marginLeft: spacing.sm,
       backgroundColor: colors.accentWarm,
       paddingHorizontal: spacing.sm,
       paddingVertical: 2,
@@ -516,6 +401,26 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
       color: colors.textAccent,
       fontSize: typography.xs,
       fontWeight: typography.bold,
+    },
+    indicators: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    bellIcon: {
+      fontSize: 13,
+    },
+    kebabBtn: {
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    kebabIcon: {
+      fontSize: 18,
+      color: colors.textTertiary,
+      fontWeight: typography.bold,
+      lineHeight: 20,
     },
     titleRow: {
       flexDirection: 'row',
@@ -530,10 +435,6 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     titleCompleted: {
       textDecorationLine: 'line-through',
       color: colors.textTertiary,
-    },
-    alarmIcon: {
-      marginLeft: spacing.xs,
-      fontSize: typography.sm,
     },
     purpose: {
       fontSize: typography.sm + 1,

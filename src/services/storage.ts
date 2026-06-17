@@ -28,6 +28,9 @@ const KEYS = {
   OPENAI_KEY: 'openai_key',
   ANTHROPIC_KEY: 'anthropic_key',
   HAS_LOADED_DEFAULTS: 'has_loaded_defaults',
+  ALARM_DEFAULT_VIBRATE: 'alarm_default_vibrate',
+  ALARM_DEFAULT_SNOOZE_ENABLED: 'alarm_default_snooze_enabled',
+  ALARM_DEFAULT_SNOOZE_MINUTES: 'alarm_default_snooze_minutes',
 };
 
 // Helper para obtener/guardar arrays JSON
@@ -192,6 +195,27 @@ export function hasLoadedDefaults(): boolean {
 
 export function setHasLoadedDefaults(value: boolean): void {
   storage.set(KEYS.HAS_LOADED_DEFAULTS, value);
+}
+
+// ============ Alarm defaults ============
+export function getAlarmDefaultVibrate(): boolean {
+  return storage.getBoolean(KEYS.ALARM_DEFAULT_VIBRATE) ?? true;
+}
+export function setAlarmDefaultVibrate(value: boolean): void {
+  storage.set(KEYS.ALARM_DEFAULT_VIBRATE, value);
+}
+export function getAlarmDefaultSnoozeEnabled(): boolean {
+  return storage.getBoolean(KEYS.ALARM_DEFAULT_SNOOZE_ENABLED) ?? true;
+}
+export function setAlarmDefaultSnoozeEnabled(value: boolean): void {
+  storage.set(KEYS.ALARM_DEFAULT_SNOOZE_ENABLED, value);
+}
+export function getAlarmDefaultSnoozeMinutes(): 5 | 10 | 15 | 30 {
+  const raw = storage.getNumber(KEYS.ALARM_DEFAULT_SNOOZE_MINUTES);
+  return (raw === 5 || raw === 10 || raw === 15 || raw === 30) ? raw : 5;
+}
+export function setAlarmDefaultSnoozeMinutes(value: 5 | 10 | 15 | 30): void {
+  storage.set(KEYS.ALARM_DEFAULT_SNOOZE_MINUTES, value);
 }
 
 // ============ Reset ============

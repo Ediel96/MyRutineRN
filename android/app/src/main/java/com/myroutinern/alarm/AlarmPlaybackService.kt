@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.core.app.NotificationCompat
+import com.myroutinern.MainActivity
 
 class AlarmPlaybackService : Service() {
 
@@ -20,24 +21,33 @@ class AlarmPlaybackService : Service() {
     companion object {
         const val CHANNEL_ID = "alarm_playback_channel"
         const val NOTIFICATION_ID = 9001
+        const val ACTION_STOP = "com.myroutinern.alarm.STOP"
     }
+
+    private var currentAlarmId: String = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopPlayback()
+            return START_NOT_STICKY
+        }
+
         val soundUri = intent?.getStringExtra("soundUri")
         val soundId  = intent?.getStringExtra("soundId")
         val volume   = intent?.getIntExtra("volume", 80) ?: 80
         val vibrate  = intent?.getBooleanExtra("vibrate", true) ?: true
+        currentAlarmId = intent?.getStringExtra("alarmId") ?: ""
 
-        startForegroundNotification()
+        startForegroundNotification(currentAlarmId)
         playSound(soundUri, soundId, volume)
         if (vibrate) startVibration()
 
         return START_STICKY
     }
 
-    private fun startForegroundNotification() {
+    private fun startForegroundNotification(alarmId: String) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Reproducción de alarma", NotificationManager.IMPORTANCE_HIGH
@@ -45,10 +55,34 @@ class AlarmPlaybackService : Service() {
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }
+
+        // Tap notificación → abre AlarmRinging en la app
+        val openIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("alarmId", alarmId)
+            putExtra("navigateTo", "AlarmRinging")
+        }
+        val openPending = PendingIntent.getActivity(
+            this, NOTIFICATION_ID, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Botón "Cancelar" en la notificación → detiene el servicio
+        val stopIntent = Intent(this, AlarmPlaybackService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPending = PendingIntent.getService(
+            this, NOTIFICATION_ID + 1, stopIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Alarma sonando")
+            .setContentTitle("⏰ Alarma sonando")
+            .setContentText("Toca para abrir o cancela desde aquí")
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentIntent(openPending)
             .setOngoing(true)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancelar", stopPending)
             .build()
         startForeground(NOTIFICATION_ID, notification)
     }

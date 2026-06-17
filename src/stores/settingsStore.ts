@@ -11,11 +11,17 @@ interface SettingsState {
   language: AppLanguage;
   refreshID: string;
   isLoading: boolean;
+  alarmDefaultVibrate: boolean;
+  alarmDefaultSnoozeEnabled: boolean;
+  alarmDefaultSnoozeMinutes: 5 | 10 | 15 | 30;
 
   // Actions
   loadSettings: () => void;
   setTheme: (theme: AppThemeMode) => void;
   setLanguage: (language: AppLanguage) => void;
+  setAlarmDefaultVibrate: (v: boolean) => void;
+  setAlarmDefaultSnoozeEnabled: (v: boolean) => void;
+  setAlarmDefaultSnoozeMinutes: (v: 5 | 10 | 15 | 30) => void;
   resetAllData: () => void;
 }
 
@@ -24,6 +30,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   language: AppLanguage.system,
   refreshID: '',
   isLoading: true,
+  alarmDefaultVibrate: true,
+  alarmDefaultSnoozeEnabled: true,
+  alarmDefaultSnoozeMinutes: 5,
 
   loadSettings: () => {
     const themeStr = storage.getTheme() as AppThemeMode;
@@ -36,11 +45,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       ? languageStr
       : AppLanguage.system;
 
-    // Apply language to i18n
     const bundle = language === AppLanguage.system ? 'en' : language;
     i18n.changeLanguage(bundle);
 
-    set({theme, language, isLoading: false});
+    set({
+      theme,
+      language,
+      isLoading: false,
+      alarmDefaultVibrate: storage.getAlarmDefaultVibrate(),
+      alarmDefaultSnoozeEnabled: storage.getAlarmDefaultSnoozeEnabled(),
+      alarmDefaultSnoozeMinutes: storage.getAlarmDefaultSnoozeMinutes(),
+    });
   },
 
   setTheme: (theme) => {
@@ -52,9 +67,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     storage.setLanguage(language);
     const bundle = language === AppLanguage.system ? 'en' : language;
     i18n.changeLanguage(bundle);
-
-    // Force refresh
     set({language, refreshID: Date.now().toString()});
+  },
+
+  setAlarmDefaultVibrate: (v) => {
+    storage.setAlarmDefaultVibrate(v);
+    set({alarmDefaultVibrate: v});
+  },
+
+  setAlarmDefaultSnoozeEnabled: (v) => {
+    storage.setAlarmDefaultSnoozeEnabled(v);
+    set({alarmDefaultSnoozeEnabled: v});
+  },
+
+  setAlarmDefaultSnoozeMinutes: (v) => {
+    storage.setAlarmDefaultSnoozeMinutes(v);
+    set({alarmDefaultSnoozeMinutes: v});
   },
 
   resetAllData: () => {
@@ -63,6 +91,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       theme: AppThemeMode.dark,
       language: AppLanguage.system,
       refreshID: Date.now().toString(),
+      alarmDefaultVibrate: true,
+      alarmDefaultSnoozeEnabled: true,
+      alarmDefaultSnoozeMinutes: 5,
     });
     i18n.changeLanguage('en');
   },

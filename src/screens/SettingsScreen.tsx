@@ -1,6 +1,6 @@
 // src/screens/SettingsScreen.tsx
 import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useSettingsStore} from '../stores/settingsStore';
@@ -26,7 +26,12 @@ export default function SettingsScreen({}: Props) {
   const {t} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {theme: appTheme, setTheme, language, setLanguage} = useSettingsStore();
+  const {
+    theme: appTheme, setTheme, language, setLanguage,
+    alarmDefaultVibrate, setAlarmDefaultVibrate,
+    alarmDefaultSnoozeEnabled, setAlarmDefaultSnoozeEnabled,
+    alarmDefaultSnoozeMinutes, setAlarmDefaultSnoozeMinutes,
+  } = useSettingsStore();
   const {events, subtasks, completions} = useRoutinesStore();
 
   const handleResetData = () => {
@@ -81,6 +86,49 @@ export default function SettingsScreen({}: Props) {
               {i < ABOUT_STATS.length - 1 && <View style={styles.divider} />}
             </React.Fragment>
           ))}
+        </SettingsCard>
+
+        <SettingsCard title="Alarmas">
+          <SettingsNavRow
+            icon="⏰"
+            iconBg={theme.colors.accentSecondary}
+            label="Gestionar alarmas"
+            onPress={() => navigation.navigate('AlarmList')}
+          />
+          <View style={styles.alarmRow}>
+            <Text style={styles.alarmRowLabel}>Vibrar por defecto</Text>
+            <Switch
+              value={alarmDefaultVibrate}
+              onValueChange={setAlarmDefaultVibrate}
+              trackColor={{false: theme.colors.border, true: theme.colors.primary}}
+              thumbColor={alarmDefaultVibrate ? '#FFFFFF' : theme.colors.textTertiary}
+            />
+          </View>
+          <View style={styles.alarmDivider} />
+          <View style={styles.alarmRow}>
+            <Text style={styles.alarmRowLabel}>Posponer por defecto</Text>
+            <Switch
+              value={alarmDefaultSnoozeEnabled}
+              onValueChange={setAlarmDefaultSnoozeEnabled}
+              trackColor={{false: theme.colors.border, true: theme.colors.primary}}
+              thumbColor={alarmDefaultSnoozeEnabled ? '#FFFFFF' : theme.colors.textTertiary}
+            />
+          </View>
+          <View style={styles.snoozeSection}>
+            <Text style={styles.alarmSubLabel}>Duración del posponer</Text>
+            <View style={styles.snoozeRow}>
+              {([5, 10, 15, 30] as const).map(opt => (
+                <TouchableOpacity
+                  key={opt}
+                  style={[styles.snoozeChip, alarmDefaultSnoozeMinutes === opt && {backgroundColor: theme.colors.primary, borderColor: theme.colors.primary}]}
+                  onPress={() => setAlarmDefaultSnoozeMinutes(opt)}>
+                  <Text style={[styles.snoozeChipText, alarmDefaultSnoozeMinutes === opt && styles.snoozeChipTextActive]}>
+                    {opt} min
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </SettingsCard>
 
         <SettingsCard title={t('settings.advanced')}>
@@ -150,6 +198,31 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     statLabel: {flex: 1, fontSize: typography.md, color: colors.textSecondary, fontWeight: typography.medium},
     statValue: {fontSize: typography.lg, fontWeight: typography.bold},
     divider: {height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.md},
+
+    alarmRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm + 2,
+      minHeight: 52,
+    },
+    alarmRowLabel: {fontSize: typography.md, fontWeight: typography.medium, color: colors.textPrimary, flex: 1},
+    alarmSubLabel: {fontSize: typography.xs, fontWeight: typography.semibold, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: spacing.sm},
+    snoozeSection: {paddingHorizontal: spacing.md, paddingBottom: spacing.md, gap: spacing.xs},
+    snoozeRow: {flexDirection: 'row', gap: spacing.sm},
+    snoozeChip: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: spacing.sm,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceAlt,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    snoozeChipText: {fontSize: typography.sm, color: colors.textSecondary, fontWeight: typography.medium},
+    snoozeChipTextActive: {color: '#FFFFFF', fontWeight: typography.semibold},
+    alarmDivider: {height: 0.5, backgroundColor: colors.border, marginHorizontal: spacing.md},
 
     dangerCard: {
       marginHorizontal: spacing.lg,

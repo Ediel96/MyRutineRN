@@ -2,7 +2,8 @@
 // Pantalla principal de hoy - equivalente a Views/Today/TodayView.swift
 
 import React, {useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {ScrollView} from 'react-native-gesture-handler';
 import Animated, {Easing, useAnimatedStyle, useSharedValue, withTiming} from 'react-native-reanimated';
 import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';

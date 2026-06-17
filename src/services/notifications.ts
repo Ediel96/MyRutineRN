@@ -6,6 +6,7 @@ import notifee, {
   TimestampTrigger,
   TriggerType,
   AuthorizationStatus,
+  RepeatFrequency,
 } from '@notifee/react-native';
 import type {RoutineEvent, PendingNotification} from '../types';
 
@@ -74,6 +75,7 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
       {
         type: TriggerType.TIMESTAMP,
         timestamp: trigger.getTime(),
+        repeatFrequency: RepeatFrequency.WEEKLY,
         alarmManager: {
           allowWhileIdle: true,
         },
@@ -84,10 +86,10 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
 
 // Schedule reminder notification
 export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<void> {
-  if (event.notifyMinutesBefore <= 0) return;
-
   // Cancel existing reminder
   await notifee.cancelNotification(`${event.id}_reminder`);
+
+  if (event.notifyMinutesBefore <= 0) return;
 
   const [startHour, startMinute] = event.startTime.split(':').map(Number);
   const dayMap: Record<string, number> = {
@@ -105,6 +107,9 @@ export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<v
   if (!trigger) return;
 
   trigger.setMinutes(trigger.getMinutes() - event.notifyMinutesBefore);
+  if (trigger.getTime() <= Date.now()) {
+    trigger.setDate(trigger.getDate() + 7);
+  }
 
   await notifee.createTriggerNotification(
     {
@@ -124,6 +129,7 @@ export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<v
     {
       type: TriggerType.TIMESTAMP,
       timestamp: trigger.getTime(),
+      repeatFrequency: RepeatFrequency.WEEKLY,
     } as TimestampTrigger,
   );
 }
@@ -201,7 +207,7 @@ function getNextTriggerDate(dayOfWeek: number, hour: number, minute: number): Da
 
   // iOS weekday: 1=Sun, 2=Mon, ..., 7=Sat
   // JavaScript: 0=Sun, 1=Mon, ..., 6=Sat
-  const targetDay = dayOfWeek === 7 ? 0 : dayOfWeek;
+  const targetDay = (dayOfWeek + 6) % 7;
   const currentDay = now.getDay();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
