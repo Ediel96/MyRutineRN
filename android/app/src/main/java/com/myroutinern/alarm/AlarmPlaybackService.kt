@@ -152,4 +152,9 @@ class AlarmPlaybackService : Service() {
         stopPlayback()
         super.onDestroy()
     }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        stopPlayback()
+        super.onTaskRemoved(rootIntent)
+    }
 }

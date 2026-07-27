@@ -61,7 +61,8 @@
       <service
         android:name=".alarm.AlarmPlaybackService"
         android:exported="false"
-        android:foregroundServiceType="mediaPlayback" />
+        android:foregroundServiceType="mediaPlayback"
+        android:stopWithTask="true" />
 
       <service
         android:name=".alarm.RescheduleAlarmsService"
