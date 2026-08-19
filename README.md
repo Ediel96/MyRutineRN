@@ -1,97 +1,226 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# MyRoutine
 
-# Getting Started
+App de rutinas diarias con alarmas nativas, temporizador Pomodoro y creación de
+rutinas por IA (texto o voz). React Native 0.86 con la nueva arquitectura.
+Port del original en SwiftUI/SwiftData para iOS.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+Toda la persistencia es **local** (MMKV). No hay backend, no hay cuentas, no hay
+sincronización. Si borras la app, se van los datos.
 
-## Step 1: Start Metro
+---
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+## Requisitos
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+| | |
+|---|---|
+| Node | >= 22.11.0 |
+| JDK | 17 |
+| Android SDK | API 36 |
+| Xcode | para iOS (AlarmKit requiere iOS 26+) |
 
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+`adb` tiene que estar accesible. Si no lo está, añade esto a tu `~/.zshrc`:
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+export ANDROID_HOME="$HOME/Library/Android/sdk"
+export PATH="$PATH:$ANDROID_HOME/platform-tools"
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Para comprobar que todo está en su sitio:
 
 ```sh
-bundle install
+npm run device:doctor
 ```
 
-Then, and every time you update your native dependencies, run:
+---
+
+## Arranque rápido
 
 ```sh
-bundle exec pod install
+npm install          # instala dependencias y aplica los parches
+npm start            # arranca Metro (dejar corriendo en su propia terminal)
+npm run android:fast # compila e instala en el emulador/dispositivo
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+---
+
+## Comandos
+
+### Desarrollo diario
+
+| Comando | Qué hace |
+|---|---|
+| `npm start` | Arranca Metro, el servidor que sirve el JavaScript a la app. Déjalo corriendo. |
+| `npm run android:fast` | **El que vas a usar el 95% del tiempo.** Compila e instala en Android solo para la arquitectura del dispositivo conectado. |
+| `npm run android` | Igual, pero compila las 4 arquitecturas. Más lento y APK mucho más pesado. Úsalo solo para verificar antes de publicar. |
+| `npm run ios` | Compila y ejecuta en el simulador de iOS. |
+| `npm run lint` | ESLint sobre todo el proyecto. |
+| `npm test` | Tests con Jest. |
+
+Un test suelto:
 
 ```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+npx jest ruta/al/archivo.test.tsx -t "nombre del test"
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+### Por qué existe `android:fast`
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+`npm run android` compila las librerías nativas para las **cuatro**
+arquitecturas de Android:
 
-## Step 3: Modify your app
+| ABI | Peso en el APK |
+|---|---|
+| x86 | 53.0 MB |
+| arm64-v8a | 52.9 MB |
+| x86_64 | 51.7 MB |
+| armeabi-v7a | 31.3 MB |
 
-Now that you have successfully run the app, let's make changes!
+Eso son 202 MB de APK, de los que tu emulador usa **una sola** (`arm64-v8a` en
+Mac con Apple Silicon). Las otras tres se compilan, se empaquetan y se copian al
+emulador para nada — y son la causa típica del error
+`INSTALL_FAILED_INSUFFICIENT_STORAGE`.
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+`android:fast` usa `--active-arch-only`: detecta la arquitectura del dispositivo
+conectado y compila solo esa. El APK baja a ~65 MB y el build es notablemente
+más rápido.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+---
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+## Emulador: espacio, caché e instalación
 
-## Congratulations! :tada:
+Estos comandos envuelven `adb` para que no tengas que recordar la sintaxis.
+Todos viven en `scripts/android.sh`.
 
-You've successfully run and modified your React Native App. :partying_face:
+| Comando | Qué hace | ¿Borra datos? |
+|---|---|---|
+| `npm run device:doctor` | Diagnóstico: adb, dispositivos, arquitectura, versión de Android, espacio. | No |
+| `npm run device:space` | Espacio libre y si te alcanza para instalar el APK actual. | No |
+| `npm run device:cache` | Libera la caché de todas las apps del dispositivo. | No |
+| `npm run device:uninstall` | Desinstala MyRoutine del dispositivo. | **Sí** |
+| `npm run device:free` | Caché + desinstalar. Para recuperar el máximo espacio. | **Sí** |
+| `npm run android:apk` | Compila el APK **sin** instalarlo. | No |
+| `npm run android:install` | Instala el APK ya compilado (sin recompilar). | No |
 
-### Now what?
+### Cuando falla la instalación por falta de espacio
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+Si ves esto:
 
-# Troubleshooting
+```
+INSTALL_FAILED_INSUFFICIENT_STORAGE: Failed to override installation location
+```
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+Tu código está bien — compiló correctamente. Lo que falló es el último paso,
+copiar el APK al emulador. En orden, de menos a más agresivo:
 
-# Learn More
+```sh
+npm run device:space   # 1. ver cuánto falta
+npm run device:cache   # 2. liberar caché (inofensivo, prueba esto primero)
+npm run device:free    # 3. si aún no alcanza (borra tus rutinas guardadas)
+```
 
-To learn more about React Native, take a look at the following resources:
+Si ni con eso alcanza, el disco del AVD es demasiado pequeño. En Android Studio:
+**Device Manager → el emulador → Edit → Show Advanced Settings → Internal
+Storage**. Súbelo a 8192 MB. O usa **Wipe Data** para dejarlo en limpio.
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+Android necesita alrededor de **3 veces** el peso del APK en espacio libre,
+porque durante la instalación extrae y optimiza el código antes de liberar lo
+temporal. Con un APK de 202 MB eso son ~600 MB; con uno de 65 MB, ~200 MB. Otra
+razón para usar `android:fast`.
+
+### Compilar e instalar por separado
+
+Útil cuando la instalación falla y no quieres esperar otro build completo:
+
+```sh
+npm run android:apk      # compila (tarda)
+npm run device:free      # haces sitio
+npm run android:install  # instala el APK que ya tenías (segundos)
+```
+
+---
+
+## Cuando algo va mal
+
+Los comandos de limpieza, ordenados de más rápido a más lento. **Ve en orden**,
+no saltes directo al último: `clean:node` tarda varios minutos.
+
+| Comando | Qué borra | Cuándo |
+|---|---|---|
+| `npm run start:reset` | Caché de Metro | La app no refleja tus cambios de JS, o errores raros de imports |
+| `npm run android:reset` | Build de Gradle + caché de Metro | Errores de compilación de Android que no entiendes |
+| `npm run ios:reset` | Pods + build de Xcode + caché de Metro | Lo mismo en iOS |
+| `npm run clean:node` | `node_modules` entero, reinstala | Tras cambiar dependencias, o si nada de lo anterior funciona |
+| `npm run android:clean-install` | Todo lo anterior + compila Android | Último recurso |
+| `npm run ios:clean-install` | Todo lo anterior + compila iOS | Último recurso |
+
+### Errores frecuentes
+
+**`patch-package` falla al aplicar un parche**
+
+```sh
+npm run clean:node
+```
+
+Si sigue fallando, el archivo de `patches/` está corrupto. Ojo con esto: al
+regenerar un parche **nunca lo hagas después de haber compilado Android**, o
+`patch-package` se traga todo `node_modules/<pkg>/android/build/` (cientos de
+artefactos binarios) y genera un parche inservible. Si tienes que regenerarlo:
+
+```sh
+npx patch-package <paquete> --exclude 'android/build'
+```
+
+**`No modules to process in combine-js-to-schema-cli`**
+
+Es ruido de codegen, no un error. Ignóralo.
+
+**Las alarmas no suenan en Android**
+
+Revisa los permisos: alarmas exactas, ignorar optimización de batería, y mostrar
+sobre otras apps. La pantalla `AndroidPermissionsOnboarding` los pide, pero en
+un emulador recién creado suele haber que darlos a mano en Ajustes.
+
+---
+
+## Estructura
+
+```
+src/
+├── screens/      Pantallas (Today, Week, Calendar, Stats, Settings, Pomodoro...)
+├── components/   UI reutilizable (ui/, pomodoro/, settings/, alarm/)
+├── stores/       Estado con Zustand sobre MMKV
+├── services/     Persistencia, notificaciones, parser de IA, keychain, logger
+├── native/       Puentes a los módulos nativos de alarma
+├── navigation/   Stack + tabs
+├── theme/        Sistema de diseño (colores, espaciado, tipografía)
+├── i18n/         es / en / fr
+└── types/        Modelos y enums
+
+brand/            Iconos: SVG fuente, generador y assets web
+scripts/          Utilidades de desarrollo
+```
+
+### Dónde está cada cosa
+
+- **Tema y colores** → `src/theme/AppTheme.ts`. Nunca escribas un color a mano en
+  un componente; sácalo de `useTheme()`.
+- **Dos sistemas de alarma distintos**: las de rutina son campos dentro de
+  `RoutineEvent` (vía `services/notifications.ts`); las independientes son el
+  modelo `Alarm` en `alarmStore` (vía `services/AlarmService.ts`). No los
+  confundas.
+- **Parser de IA** → `src/services/aiParser.ts`. Las claves de API van a
+  `react-native-keychain`, nunca a MMKV.
+- **Iconos** → `brand/README.md` explica el diseño y cómo regenerarlos.
+
+Hay más detalle de arquitectura en `CLAUDE.md`.
+
+---
+
+## Notas
+
+- Muchos archivos llevan comentarios `// equivalente a X.swift` que apuntan al
+  archivo del proyecto iOS original. Si un port parece incompleto, ese archivo
+  es la referencia de comportamiento esperado.
+- El postinstall de `hyochan-welcome` que npm bloquea es inofensivo: solo imprime
+  un ASCII art. Es una dependencia de `react-native-audio-recorder-player`.
+- Los avisos de `deprecated` al compilar Android vienen de librerías de terceros,
+  no de este código.

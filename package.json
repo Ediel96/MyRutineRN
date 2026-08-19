@@ -14,7 +14,15 @@
     "android:clean-install": "npm run clean:node && cd android && ./gradlew clean && cd .. && npm run android",
     "ios:reset": "cd ios && npx pod-install && xcodebuild -alltargets clean || true && cd .. && npm run start:reset",
     "ios:clean-install": "npm run clean:node && cd ios && npx pod-install && cd .. && npm run ios",
-    "test": "jest"
+    "test": "jest",
+    "android:fast": "react-native run-android --active-arch-only",
+    "android:apk": "bash scripts/android.sh apk",
+    "android:install": "bash scripts/android.sh install",
+    "device:doctor": "bash scripts/android.sh doctor",
+    "device:space": "bash scripts/android.sh space",
+    "device:cache": "bash scripts/android.sh cache",
+    "device:uninstall": "bash scripts/android.sh uninstall",
+    "device:free": "bash scripts/android.sh free"
   },
   "dependencies": {
     "@howljs/calendar-kit": "^2.5.6",
