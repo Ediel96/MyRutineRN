@@ -99,6 +99,7 @@ Todos viven en `scripts/android.sh`.
 | `npm run device:free` | Caché + desinstalar. Para recuperar el máximo espacio. | **Sí** |
 | `npm run android:apk` | Compila el APK **sin** instalarlo. | No |
 | `npm run android:install` | Instala el APK ya compilado (sin recompilar). | No |
+| `npm run android:size` | Desglosa el peso del APK por sección. | No |
 
 ### Cuando falla la instalación por falta de espacio
 
@@ -135,6 +136,102 @@ npm run android:apk      # compila (tarda)
 npm run device:free      # haces sitio
 npm run android:install  # instala el APK que ya tenías (segundos)
 ```
+
+---
+
+## Builds de producción
+
+| Comando | Salida |
+|---|---|
+| `npm run android:release` | APK de release en `android/app/build/outputs/apk/release/` |
+| `npm run android:bundle` | AAB para Play Store en `android/app/build/outputs/bundle/release/` |
+
+**Para publicar usa el AAB**, no el APK. Play Store recibe el bundle y entrega
+a cada usuario solo la arquitectura y los recursos de su dispositivo, así que
+la descarga real es alrededor de un tercio del APK universal. No hay que
+configurar nada.
+
+Si necesitas APKs sueltos por arquitectura (instalación manual, distribución
+fuera de Play):
+
+```sh
+cd android && ./gradlew assembleRelease -PsplitApks
+```
+
+### ⚠️ El release está firmado con la clave de debug
+
+En `app/build.gradle`, el bloque `release` usa `signingConfigs.debug`. Es lo que
+trae la plantilla de React Native. **Play Store va a rechazar ese APK**, y una
+vez publiques con una clave no puedes cambiarla nunca más.
+
+Antes de la primera publicación tienes que generar tu propio keystore, guardarlo
+donde no se pierda y **no** subirlo a git. No lo he tocado porque es una
+decisión tuya y las credenciales no deben salir de tu máquina.
+
+### Qué se optimizó y cuánto pesa cada cosa
+
+Mide el APK en cualquier momento:
+
+```sh
+npm run android:size
+```
+
+Las optimizaciones aplicadas, de mayor a menor impacto:
+
+**1. Una sola arquitectura en desarrollo** — `--active-arch-only`
+Ya medido: el APK de debug pasó de **202 MB a 64 MB**. Es el cambio más grande
+y el que más acelera el build, porque compilar las librerías nativas cuatro
+veces es la mayor parte del tiempo.
+
+**2. R8 activado en release** — `enableProguardInReleaseBuilds = true`
+Estaba desactivado. R8 recorre el grafo de llamadas y descarta todo el código
+Java/Kotlin inalcanzable de las librerías. El `classes.dex` son 24 MB sin
+comprimir en el build actual; R8 se lleva una parte grande de eso.
+
+**3. `shrinkResources`** — elimina drawables, layouts y strings que ya no
+referencia nadie tras el paso de R8.
+
+**4. Solo 3 idiomas** — `resourceConfigurations += ["en","es","fr"]`
+AndroidX y Material empaquetan sus textos en unos 80 idiomas. La app solo tiene
+`src/i18n/locales/{en,es,fr}.json`; el resto era peso muerto.
+
+**5. Se eliminó x86 (32 bits)** — en `reactNativeArchitectures`
+No queda ningún dispositivo ni emulador moderno que lo use, y aportaba 53 MB al
+APK universal. Se mantienen `armeabi-v7a`, `arm64-v8a` y `x86_64`.
+
+Y para la velocidad del build:
+
+**6. Gradle en paralelo, con caché y más memoria**
+El heap pasó de 2 GB a 4 GB (con 2 GB el recolector de basura no para en un
+proyecto con ~15 módulos nativos), se activó `org.gradle.parallel` para
+compilar módulos independientes a la vez, y `org.gradle.caching` para reutilizar
+resultados de tareas entre builds — incluso después de un `clean`. El primer
+build tras el cambio no mejora; los siguientes sí, bastante.
+
+Si tu Mac tiene 32 GB de RAM, sube `org.gradle.jvmargs` a `-Xmx6144m`. Si ves
+`Java heap space` o el build se cuelga, bájalo.
+
+### Si un build de release falla tras activar R8
+
+Es el riesgo conocido de minificar: R8 no ve el código que se llama por
+reflexión o desde JNI, y puede eliminarlo. El síntoma es un crash en release
+que no ocurre en debug — `ClassNotFoundException`, `NoSuchMethodError`, o un
+módulo nativo que "no existe".
+
+**El arreglo es añadir una regla `-keep` en `android/app/proguard-rules.pro`,
+no volver a poner `enableProguardInReleaseBuilds = false`.** Ese archivo ya
+tiene reglas para React Native, Hermes, los módulos nativos de alarma y las
+librerías de terceros del proyecto, con comentarios explicando cada bloque.
+
+Para ver qué eliminó R8, después de un build de release:
+
+```
+android/app/build/outputs/mapping/release/usage.txt    # lo que se eliminó
+android/app/build/outputs/mapping/release/mapping.txt  # lo que se renombró
+```
+
+Guarda el `mapping.txt` de cada versión que publiques: sin él, los stack traces
+de producción son ilegibles.
 
 ---
 

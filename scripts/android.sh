@@ -137,6 +137,44 @@ cmd_install() {
   "$ADB" shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
 }
 
+# Desglosa el peso de un APK: cuanto pesa cada arquitectura nativa, el bundle
+# de JS y el codigo Java/Kotlin. Sirve para saber donde atacar.
+cmd_size() {
+  local f="${2:-}"
+  [ -z "$f" ] && for c in \
+      "android/app/build/outputs/apk/release/app-release.apk" \
+      "$APK"; do
+    [ -f "$c" ] && { f="$c"; break; }
+  done
+  [ -n "$f" ] && [ -f "$f" ] || {
+    echo "No encuentro ningun APK. Compila antes:" >&2
+    echo "  npm run android:apk       (debug)" >&2
+    echo "  npm run android:release   (release)" >&2
+    exit 1
+  }
+
+  echo "APK: $f"
+  echo "Tamano del archivo (comprimido, lo que ocupa en disco): $(( $(wc -c < "$f") / 1048576 )) MB"
+  echo
+  echo "Desglose SIN COMPRIMIR — sirve para comparar pesos relativos entre"
+  echo "secciones, no para sumar: el total de abajo supera al de arriba."
+  echo
+  echo "Librerias nativas por arquitectura:"
+  unzip -l "$f" | awk '/ lib\//{split($4,a,"/"); s[a[2]]+=$1} END{
+    for(k in s) printf "  %-14s %7.1f MB\n", k, s[k]/1048576}' | sort -k2 -rn
+  echo
+  echo "Resto:"
+  unzip -l "$f" | awk '
+    / assets\/.*\.bundle/{js+=$1}
+    /classes.*\.dex/{dex+=$1}
+    / res\//{res+=$1}
+    END{
+      printf "  %-14s %7.1f MB  (bundle de JavaScript)\n", "assets", js/1048576
+      printf "  %-14s %7.1f MB  (codigo Java/Kotlin -> lo que reduce R8)\n", "dex", dex/1048576
+      printf "  %-14s %7.1f MB  (recursos Android)\n",     "res",    res/1048576
+    }'
+}
+
 cmd_doctor() {
   require_adb
   echo "adb: $ADB"
@@ -159,9 +197,10 @@ case "${1:-}" in
   free)      cmd_free ;;
   apk)       cmd_apk ;;
   install)   cmd_install ;;
+  size)      cmd_size "$@" ;;
   doctor)    cmd_doctor ;;
   *)
-    echo "Uso: scripts/android.sh {space|cache|uninstall|free|apk|install|doctor}" >&2
+    echo "Uso: scripts/android.sh {space|cache|uninstall|free|apk|install|size|doctor}" >&2
     echo "Normalmente se usa via npm; ver README.md" >&2
     exit 1 ;;
 esac

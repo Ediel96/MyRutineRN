@@ -55,17 +55,9 @@ react {
 }
 
 /**
- * Ejecuta R8 en los builds de release para eliminar codigo Java/Kotlin sin usar.
- *
- * Activado: es la mayor reduccion de tamano disponible. R8 recorre el grafo de
- * llamadas desde los puntos de entrada y descarta todo lo inalcanzable de las
- * librerias (AndroidX, Play Services, etc.).
- *
- * Si un build de release peta con ClassNotFoundException o NoSuchMethodError,
- * es que R8 elimino algo que se usa por reflexion: anade una regla -keep en
- * proguard-rules.pro en vez de volver a poner esto en false.
+ * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
-def enableProguardInReleaseBuilds = true
+def enableProguardInReleaseBuilds = false
 
 /**
  * The preferred build flavor of JavaScriptCore (JSC)
@@ -92,37 +84,7 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-
-        // La app solo tiene traducciones en estos tres idiomas (src/i18n/locales).
-        // Sin esto, AndroidX y Material empaquetan sus strings en ~80 idiomas
-        // que nunca se muestran.
-        //
-        // AGP 8.12 marca esta propiedad como deprecada para idiomas en favor de
-        // `androidResources.localeFilters`, pero sigue funcionando. Cuando
-        // subais a AGP 9 habra que migrarla.
-        resourceConfigurations += ["en", "es", "fr"]
     }
-
-    /**
-     * APKs separados por arquitectura. Desactivado por defecto para no romper
-     * el flujo de desarrollo (cambia la ruta de salida del APK).
-     *
-     * Actívalo solo cuando lo necesites:
-     *   ./gradlew assembleRelease -PsplitApks
-     *
-     * Para publicar en Play Store no hace falta: usa `npm run android:bundle`,
-     * que genera un AAB y deja que Play entregue a cada dispositivo solo su
-     * arquitectura.
-     */
-    splits {
-        abi {
-            enable project.hasProperty("splitApks")
-            reset()
-            include "armeabi-v7a", "arm64-v8a", "x86_64"
-            universalApk false
-        }
-    }
-
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -140,29 +102,7 @@ android {
             // see https://reactnative.dev/docs/signed-apk-android.
             signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
-            // Elimina recursos (drawables, layouts, strings) que ya no referencia
-            // ningun codigo tras el paso de R8. Requiere minifyEnabled.
-            shrinkResources enableProguardInReleaseBuilds
-            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
-        }
-    }
-
-    packaging {
-        resources {
-            // Metadatos de las librerias que no aportan nada en tiempo de ejecucion.
-            // Solo se excluye lo que es inequivocamente metadato: patrones mas
-            // amplios como "**/*.txt" ahorran unos pocos KB y pueden romper
-            // librerias que leen ficheros de texto propios en runtime.
-            excludes += [
-                "META-INF/DEPENDENCIES",
-                "META-INF/LICENSE",
-                "META-INF/LICENSE.txt",
-                "META-INF/NOTICE",
-                "META-INF/NOTICE.txt",
-                "META-INF/*.kotlin_module",
-                "META-INF/*.version",
-                "DebugProbesKt.bin",
-            ]
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
 }

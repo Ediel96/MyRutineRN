@@ -22,7 +22,10 @@
     "device:space": "bash scripts/android.sh space",
     "device:cache": "bash scripts/android.sh cache",
     "device:uninstall": "bash scripts/android.sh uninstall",
-    "device:free": "bash scripts/android.sh free"
+    "device:free": "bash scripts/android.sh free",
+    "android:release": "cd android && ./gradlew assembleRelease",
+    "android:bundle": "cd android && ./gradlew bundleRelease",
+    "android:size": "bash scripts/android.sh size"
   },
   "dependencies": {
     "@howljs/calendar-kit": "^2.5.6",
