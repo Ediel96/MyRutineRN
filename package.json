@@ -10,8 +10,8 @@
     "start": "react-native start",
     "start:reset": "npm run start -- --reset-cache",
     "clean:node": "watchman watch-del-all || true && rm -rf node_modules && npm install && npx pod-install || true",
-    "android:reset": "cd android && ./gradlew clean && cd .. && npm run start:reset",
-    "android:clean-install": "npm run clean:node && cd android && ./gradlew clean && cd .. && npm run android",
+    "android:reset": "npm run android:clean && npm run start:reset",
+    "android:clean-install": "npm run clean:node && npm run android:clean && npm run android:fast",
     "ios:reset": "cd ios && npx pod-install && xcodebuild -alltargets clean || true && cd .. && npm run start:reset",
     "ios:clean-install": "npm run clean:node && cd ios && npx pod-install && cd .. && npm run ios",
     "test": "jest",
@@ -25,7 +25,9 @@
     "device:free": "bash scripts/android.sh free",
     "android:release": "cd android && ./gradlew assembleRelease",
     "android:bundle": "cd android && ./gradlew bundleRelease",
-    "android:size": "bash scripts/android.sh size"
+    "android:size": "bash scripts/android.sh size",
+    "android:clean": "bash scripts/android.sh clean",
+    "device:list": "bash scripts/android.sh devices"
   },
   "dependencies": {
     "@howljs/calendar-kit": "^2.5.6",

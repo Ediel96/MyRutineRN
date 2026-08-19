@@ -11,7 +11,14 @@
   },
   "calendar": {
     "drag_hint": "Faites glisser les événements pour les reprogrammer",
-    "tasks_count": "{{count}} tâche(s)"
+    "tasks_count_one": "{{count}} tâche",
+    "tasks_count_other": "{{count}} tâches",
+    "today": "Aujourd'hui",
+    "go_to_today": "Aller à aujourd'hui",
+    "prev_week": "Semaine précédente",
+    "next_week": "Semaine suivante",
+    "empty_title": "Rien de prévu",
+    "empty_message": "Aucune routine pour ce jour. Balayez pour voir d'autres jours."
   },
   "today": {
     "greeting_morning": "Bonjour",

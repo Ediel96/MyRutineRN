@@ -1,6 +1,3 @@
-// src/i18n/locales/en.json
-// Traducciones en inglés - equivalente a Resources/en.lproj/Localizable.strings
-
 {
   "app": {
     "name": "MyRoutine"
@@ -14,7 +11,14 @@
   },
   "calendar": {
     "drag_hint": "Drag events to reschedule them",
-    "tasks_count": "{{count}} tasks"
+    "tasks_count_one": "{{count}} task",
+    "tasks_count_other": "{{count}} tasks",
+    "today": "Today",
+    "go_to_today": "Go to today",
+    "prev_week": "Previous week",
+    "next_week": "Next week",
+    "empty_title": "Nothing scheduled",
+    "empty_message": "No routines for this day. Swipe to browse other days."
   },
   "today": {
     "greeting_morning": "Good morning",
