@@ -16,7 +16,10 @@
 set -euo pipefail
 
 APP_ID="com.myroutinern"
-APK="android/app/build/outputs/apk/debug/app-debug.apk"
+APK_DEBUG="android/app/build/outputs/apk/debug/app-debug.apk"
+APK_RELEASE="android/app/build/outputs/apk/release/app-release.apk"
+# Variante activa. `install release` la cambia a la de release.
+APK="$APK_DEBUG"
 
 # ---------------------------------------------------------------------------
 # adb no suele estar en el PATH. Lo buscamos en las rutas habituales.
@@ -190,15 +193,92 @@ cmd_clean() {
   echo "  npm run android:fast"
 }
 
+# Arquitectura del dispositivo conectado; arm64-v8a si no hay ninguno.
+detect_abi() {
+  local abi=""
+  if ADB="$(find_adb || true)"; [ -n "$ADB" ]; then
+    local serials; serials=$("$ADB" devices | awk '$2=="device"{print $1}')
+    if [ "$(echo "$serials" | grep -c . || true)" -eq 1 ]; then
+      abi=$("$ADB" -s "$(echo "$serials" | head -1)" shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r')
+    fi
+  fi
+  echo "${abi:-arm64-v8a}"
+}
+
 cmd_apk() {
-  echo "Compilando APK de debug solo para la arquitectura del dispositivo..."
-  ( cd android && ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a )
-  ls -lh "$APK"
+  local abi; abi=$(detect_abi)
+  echo "Compilando APK de DEBUG para $abi..."
+  echo "OJO: el APK de debug necesita Metro corriendo. Para probar el movil"
+  echo "     sin cable ni Metro, usa 'npm run android:release'."
+  ( cd android && ./gradlew assembleDebug -PreactNativeArchitectures="$abi" )
+  ls -lh "$APK_DEBUG"
+}
+
+# APK autonomo: lleva el JavaScript empaquetado dentro, no depende de Metro.
+cmd_release() {
+  local abi; abi=$(detect_abi)
+  echo "Compilando APK de RELEASE para $abi..."
+  echo
+  echo "A diferencia del de debug, este APK:"
+  echo "  - lleva el bundle de JS dentro (no necesita Metro ni el PC)"
+  echo "  - pasa por R8, que elimina codigo sin usar"
+  echo "  - no tiene menu de desarrollo ni fast refresh"
+  echo
+  ( cd android && ./gradlew assembleRelease -PreactNativeArchitectures="$abi" )
+  echo
+  ls -lh "$APK_RELEASE"
+  echo
+  echo "Instalalo con:  npm run android:install:release"
+  echo "O copia el fichero al movil y abrelo desde el explorador de archivos."
+}
+
+# APK para enviar a otras personas.
+#
+# Diferencia clave con `release`: compila TODAS las arquitecturas, no solo la
+# del movil conectado. Un APK solo-arm64 no se instala en un movil viejo de
+# 32 bits, y no sabes que tiene la otra persona. Pesa mas, pero funciona en
+# cualquier Android 7.0 o superior.
+cmd_share() {
+  local version
+  version=$(grep -m1 'versionName' android/app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+
+  echo "Compilando APK universal de release (todas las arquitecturas)..."
+  echo "Tarda mas que 'npm run android:release' porque compila 3 ABIs."
+  echo
+  ( cd android && ./gradlew assembleRelease )
+
+  mkdir -p dist
+  local out="dist/MyRoutine-v${version}.apk"
+  cp "$APK_RELEASE" "$out"
+
+  echo
+  echo "Listo: $out  ($(( $(wc -c < "$out") / 1048576 )) MB)"
+  echo
+  echo "Envialo por WhatsApp, Drive, Telegram o como quieras."
+  echo
+  echo "Quien lo reciba tiene que:"
+  echo "  1. Abrir el fichero desde el explorador de archivos"
+  echo "  2. Aceptar 'instalar apps de origenes desconocidos' cuando lo pida"
+  echo
+  echo "Requisitos: Android 7.0 o superior."
+  echo "Nota: las funciones de IA necesitan una API key propia, configurada"
+  echo "      en Ajustes. El resto de la app funciona sin nada."
 }
 
 cmd_install() {
+  # `install release` instala la variante de release.
+  if [ "${2:-}" = "release" ]; then
+    APK="$APK_RELEASE"
+    echo "Variante: release (autonomo, sin Metro)"
+  fi
   require_device
-  [ -f "$APK" ] || { echo "No hay APK compilado. Ejecuta antes: npm run android:apk" >&2; exit 1; }
+  [ -f "$APK" ] || {
+    echo "No hay APK compilado en $APK" >&2
+    echo "Compila antes:" >&2
+    echo "  npm run android:apk      (debug, necesita Metro)" >&2
+    echo "  npm run android:release  (autonomo)" >&2
+    exit 1
+  }
   echo "Instalando ${APK}..."
   # -r reinstala conservando datos; -d permite bajar de version.
   if ! adbx install -r -d "$APK"; then
@@ -277,13 +357,15 @@ case "${1:-}" in
   uninstall) cmd_uninstall ;;
   free)      cmd_free ;;
   apk)       cmd_apk ;;
-  install)   cmd_install ;;
+  install)   cmd_install "$@" ;;
   size)      cmd_size "$@" ;;
   clean)     cmd_clean ;;
   devices)   cmd_devices ;;
+  release)   cmd_release ;;
+  share)     cmd_share ;;
   doctor)    cmd_doctor ;;
   *)
-    echo "Uso: scripts/android.sh {devices|space|cache|uninstall|free|apk|install|size|clean|doctor}" >&2
+    echo "Uso: scripts/android.sh {devices|space|cache|uninstall|free|apk|release|share|install|size|clean|doctor}" >&2
     echo "Normalmente se usa via npm; ver README.md" >&2
     exit 1 ;;
 esac

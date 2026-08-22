@@ -73,3 +73,7 @@ yarn-error.log
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# APKs para compartir y credenciales de firma
+dist/
+key.properties
