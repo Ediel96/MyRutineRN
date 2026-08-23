@@ -14,6 +14,9 @@ type ScheduleConfig = {
   vibrate: boolean;
   eventId?: string;
   triggerTimeMs?: number;
+  /** Texto de la notificación del servicio de alarma (ver buildAlarmContent). */
+  notificationTitle?: string;
+  notificationBody?: string;
 };
 
 type AlarmFiredPayload = {alarmId: string; eventId?: string};

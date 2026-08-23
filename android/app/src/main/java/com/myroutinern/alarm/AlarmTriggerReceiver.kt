@@ -20,6 +20,8 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         val hour = intent.getIntExtra(AlarmScheduling.EXTRA_HOUR, -1)
         val minute = intent.getIntExtra(AlarmScheduling.EXTRA_MINUTE, -1)
         val scheduledAt = intent.getLongExtra(AlarmScheduling.EXTRA_SCHEDULED_AT, 0L)
+        val notifTitle = intent.getStringExtra(AlarmScheduling.EXTRA_NOTIF_TITLE)
+        val notifBody = intent.getStringExtra(AlarmScheduling.EXTRA_NOTIF_BODY)
 
         val now = System.currentTimeMillis()
         val lateBy = if (scheduledAt > 0L) now - scheduledAt else 0L
@@ -39,7 +41,7 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
                 "AlarmTriggerReceiver",
                 "Alarma $alarmId descartada: llega ${lateBy / 1000}s tarde (entrega rancia tras reinicio o cambio de hora)",
             )
-            rearmIfRepeating(context, alarmId, hour, minute, repeatDays, label, soundUri, soundId, volume, vibrate, eventId)
+            rearmIfRepeating(context, alarmId, hour, minute, repeatDays, label, soundUri, soundId, volume, vibrate, eventId, notifTitle, notifBody)
             return
         }
 
@@ -49,6 +51,10 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
             putExtra(AlarmScheduling.EXTRA_SOUND_ID, soundId)
             putExtra(AlarmScheduling.EXTRA_VOLUME, volume)
             putExtra(AlarmScheduling.EXTRA_VIBRATE, vibrate)
+            // Textos de la rutina para que la notificacion diga cual suena.
+            putExtra(AlarmScheduling.EXTRA_NOTIF_TITLE, notifTitle)
+            putExtra(AlarmScheduling.EXTRA_NOTIF_BODY, notifBody)
+            if (eventId != null) putExtra(AlarmScheduling.EXTRA_EVENT_ID, eventId)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(serviceIntent)
@@ -69,7 +75,7 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         // setAlarmClock() es de un solo disparo: sin esto, una alarma que se
         // repite no volvia a sonar hasta que se reiniciaba el movil o se abria
         // la app. Ahora cada disparo deja armada la siguiente ocurrencia.
-        rearmIfRepeating(context, alarmId, hour, minute, repeatDays, label, soundUri, soundId, volume, vibrate, eventId)
+        rearmIfRepeating(context, alarmId, hour, minute, repeatDays, label, soundUri, soundId, volume, vibrate, eventId, notifTitle, notifBody)
     }
 
     private fun rearmIfRepeating(
@@ -84,6 +90,8 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
         volume: Int,
         vibrate: Boolean,
         eventId: String?,
+        notificationTitle: String?,
+        notificationBody: String?,
     ) {
         if (repeatDays.isEmpty()) return          // alarma de una sola vez
         if (hour !in 0..23 || minute !in 0..59) return  // sin datos para recalcular
@@ -101,6 +109,8 @@ class AlarmTriggerReceiver : BroadcastReceiver() {
                 volume = volume,
                 vibrate = vibrate,
                 eventId = eventId,
+                notificationTitle = notificationTitle,
+                notificationBody = notificationBody,
             )
         } catch (e: Exception) {
             Log.e("AlarmTriggerReceiver", "No se pudo re-armar la alarma $alarmId", e)

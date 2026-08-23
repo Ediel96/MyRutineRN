@@ -26,6 +26,10 @@ object AlarmScheduling {
     const val EXTRA_HOUR = "hour"
     const val EXTRA_MINUTE = "minute"
 
+    /** Texto de la notificacion, calculado en JS por buildAlarmContent(). */
+    const val EXTRA_NOTIF_TITLE = "notificationTitle"
+    const val EXTRA_NOTIF_BODY = "notificationBody"
+
     /** Momento para el que se programo la alarma, para detectar entregas rancias. */
     const val EXTRA_SCHEDULED_AT = "scheduledAtMs"
 
@@ -107,6 +111,8 @@ object AlarmScheduling {
         volume: Int,
         vibrate: Boolean,
         eventId: String?,
+        notificationTitle: String? = null,
+        notificationBody: String? = null,
         requestedTriggerMs: Long = 0L,
     ): Long {
         // Solo se acepta la hora que viene de JS si esta en el futuro. Un
@@ -130,6 +136,8 @@ object AlarmScheduling {
             putExtra(EXTRA_HOUR, hour)
             putExtra(EXTRA_MINUTE, minute)
             putExtra(EXTRA_SCHEDULED_AT, triggerTime)
+            putExtra(EXTRA_NOTIF_TITLE, notificationTitle)
+            putExtra(EXTRA_NOTIF_BODY, notificationBody)
             if (eventId != null) putExtra(EXTRA_EVENT_ID, eventId)
         }
 

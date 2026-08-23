@@ -41,15 +41,22 @@ class AlarmPlaybackService : Service() {
         val vibrate  = intent?.getBooleanExtra("vibrate", true) ?: true
         currentAlarmId = intent?.getStringExtra("alarmId") ?: ""
         currentEventId = intent?.getStringExtra("eventId")
+        val notifTitle = intent?.getStringExtra(AlarmScheduling.EXTRA_NOTIF_TITLE)
+        val notifBody = intent?.getStringExtra(AlarmScheduling.EXTRA_NOTIF_BODY)
 
-        startForegroundNotification(currentAlarmId, currentEventId)
+        startForegroundNotification(currentAlarmId, currentEventId, notifTitle, notifBody)
         playSound(soundUri, soundId, volume)
         if (vibrate) startVibration()
 
         return START_STICKY
     }
 
-    private fun startForegroundNotification(alarmId: String, eventId: String?) {
+    private fun startForegroundNotification(
+        alarmId: String,
+        eventId: String?,
+        notifTitle: String?,
+        notifBody: String?,
+    ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Reproducción de alarma", NotificationManager.IMPORTANCE_HIGH
@@ -83,9 +90,18 @@ class AlarmPlaybackService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // El texto viene de JS (buildAlarmContent) para que este traducido y
+        // lleve el nombre y la descripcion de la rutina. Si no llega, se usan
+        // las cadenas genericas de antes.
+        val title = if (!notifTitle.isNullOrBlank()) notifTitle else "⏰ Alarma sonando"
+        val body = if (!notifBody.isNullOrBlank()) notifBody else "Toca para abrir o cancela desde aquí"
+
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("⏰ Alarma sonando")
-            .setContentText("Toca para abrir o cancela desde aquí")
+            .setContentTitle(title)
+            .setContentText(body)
+            // BigTextStyle: sin esto Android corta el cuerpo a una linea y una
+            // descripcion larga queda ilegible.
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentIntent(openPending)
             .setOngoing(true)

@@ -88,6 +88,10 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
             val volume = if (config.hasKey("volume")) config.getInt("volume") else 80
             val vibrate = if (config.hasKey("vibrate")) config.getBoolean("vibrate") else true
             val eventId = if (config.hasKey("eventId")) config.getString("eventId") else null
+            val notifTitle =
+                if (config.hasKey("notificationTitle")) config.getString("notificationTitle") else null
+            val notifBody =
+                if (config.hasKey("notificationBody")) config.getString("notificationBody") else null
             val requestedTriggerMs =
                 if (config.hasKey("triggerTimeMs")) config.getDouble("triggerTimeMs").toLong() else 0L
 
@@ -113,6 +117,8 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
                 volume = volume,
                 vibrate = vibrate,
                 eventId = eventId,
+                notificationTitle = notifTitle,
+                notificationBody = notifBody,
                 requestedTriggerMs = requestedTriggerMs,
             )
 

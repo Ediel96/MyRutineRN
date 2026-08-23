@@ -227,5 +227,9 @@
     "level_error": "Error",
     "level_critical": "Critical",
     "no_logs": "No logs available"
+  },
+  "notifications": {
+    "alarm_fallback": "Time for: {{title}} · {{schedule}}",
+    "reminder_body": "Starts in {{minutes}} min · {{schedule}}"
   }
 }

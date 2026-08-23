@@ -10,6 +10,9 @@ import notifee, {
   RepeatFrequency,
 } from '@notifee/react-native';
 import {AndroidAlarmModule} from '../native/AndroidAlarmModule';
+import i18n from '../i18n';
+import {EVENT_CATEGORY_CONFIG} from '../types/enums';
+import type {EventCategory} from '../types/enums';
 import type {RoutineEvent, PendingNotification} from '../types';
 
 const CHANNEL_ID = 'myroutine-alarms';
@@ -34,6 +37,38 @@ export async function checkAuthorizationStatus(): Promise<AuthorizationStatus> {
   return await notifee.getNotificationSettings().then(s => s.authorizationStatus);
 }
 
+/**
+ * Texto de la notificación de alarma. Única fuente de verdad para Android e iOS:
+ * en Android el aviso lo pinta AlarmPlaybackService (nativo) y en iOS lo pinta
+ * notifee, así que el contenido se calcula aquí y se envía a cada plataforma.
+ *
+ * Antes, el cuerpo era la cadena fija "Time for your routine!" en iOS y
+ * "Toca para abrir o cancela desde aquí" en Android, sin ninguna referencia a
+ * la rutina: era imposible saber por qué estaba sonando.
+ *
+ * No se añadió ningún campo al modelo. `routineDescription`, `purpose` y
+ * `objectives` ya existen y los rellena EventEditorScreen. Se descarta `notes`
+ * a propósito: el editor siempre lo guarda vacío.
+ */
+export function buildAlarmContent(event: RoutineEvent): {title: string; body: string} {
+  const config = EVENT_CATEGORY_CONFIG[event.categoryRaw as EventCategory];
+  const emoji = config?.emoji ?? '⏰';
+  const title = `${emoji} ${event.title}`.trim();
+
+  const schedule = `${event.startTime}–${event.endTime}`;
+
+  // Primer campo con contenido real; se recortan espacios por si quedó a blancos.
+  const detail = [event.routineDescription, event.purpose, event.objectives]
+    .map(v => v?.trim())
+    .find(v => v && v.length > 0);
+
+  const body = detail
+    ? `${detail} · ${schedule}`
+    : i18n.t('notifications.alarm_fallback', {title: event.title, schedule});
+
+  return {title, body};
+}
+
 // Schedule alarm notifications for a routine
 export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<void> {
   await cancelNotificationsForEvent(event.id);
@@ -48,6 +83,7 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
   if (alarmDays.length === 0) return;
 
   const [alarmHour, alarmMinute] = event.alarmTime.split(':').map(Number);
+  const content = buildAlarmContent(event);
 
   if (Platform.OS === 'android') {
     // Use AlarmManager.setAlarmClock() — guaranteed delivery, unaffected by Doze
@@ -59,6 +95,9 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
         hour: alarmHour,
         minute: alarmMinute,
         label: event.title,
+        // Texto que mostrará la notificación del servicio nativo.
+        notificationTitle: content.title,
+        notificationBody: content.body,
         // Día de repetición en convención JS (0=domingo). Antes iba vacío, así
         // que si el nativo tenía que recalcular la hora (porque la enviada ya
         // había pasado) no sabía en qué día debía sonar y la ponía para hoy o
@@ -85,8 +124,8 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
     await notifee.createTriggerNotification(
       {
         id: notificationId,
-        title: `⏰ ${event.title}`,
-        body: 'Time for your routine!',
+        title: content.title,
+        body: content.body,
         ios: {
           interruptionLevel: 'timeSensitive',
         },
@@ -134,7 +173,10 @@ export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<v
     {
       id: `${event.id}_reminder`,
       title: `📝 ${event.title}`,
-      body: `Starting in ${event.notifyMinutesBefore} minutes`,
+      body: i18n.t('notifications.reminder_body', {
+        minutes: event.notifyMinutesBefore,
+        schedule: `${event.startTime}–${event.endTime}`,
+      }),
       android: {
         channelId: CHANNEL_ID,
         importance: AndroidImportance.DEFAULT,
