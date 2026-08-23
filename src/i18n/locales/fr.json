@@ -38,7 +38,18 @@
     "event_count_one": "{{count}} événement",
     "event_count_other": "{{count}} événements",
     "today_badge": "AUJOURD'HUI",
-    "free_day": "Jour libre · appuyez pour ajouter"
+    "free_day": "Jour libre · appuyez pour ajouter",
+    "mode_by_day": "Par jour",
+    "mode_by_routine": "Par routine",
+    "no_routines": "Aucune routine pour le moment",
+    "no_routines_message": "Créez votre première routine : elle apparaîtra ici avec ses jours.",
+    "danger_zone": "Zone de danger",
+    "delete_all_hint": "Supprime toutes les routines, leurs sous-tâches et leur historique. Irréversible.",
+    "delete_all_title": "Supprimer toutes les routines",
+    "delete_all_confirm": "Tout supprimer",
+    "delete_all_message": "{{routines}} routines ({{count}} jours programmés), leurs sous-tâches et leur historique seront supprimés.\n\nVos réglages, la langue et les clés IA sont conservés.",
+    "delete_all_sure_title": "Confirmer ?",
+    "delete_all_sure_message": "Il n'y a aucune sauvegarde. Action irréversible."
   },
   "routine": {
     "title": "Titre",

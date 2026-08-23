@@ -11,6 +11,7 @@ import {
   scheduleReminderForRoutine,
   cancelNotificationsForEvent,
   rescheduleAllNotifications,
+  cancelAllNotifications,
 } from '../services/notifications';
 
 function runAsync(task: Promise<unknown>) {
@@ -30,6 +31,7 @@ interface RoutinesState {
   addEvent: (event: Omit<RoutineEvent, 'id' | 'createdAt' | 'updatedAt'>) => string;
   updateEvent: (id: string, updates: Partial<RoutineEvent>) => void;
   deleteEvent: (id: string) => void;
+  deleteAllRoutines: () => void;
   getEventById: (id: string) => RoutineEvent | undefined;
   getEventsByDay: (day: WeekDay) => RoutineEvent[];
   getEventsToday: () => RoutineEvent[];
@@ -114,6 +116,15 @@ export const useRoutinesStore = create<RoutinesState>((set, get) => ({
       completions: state.completions.filter(c => c.eventId !== id),
     }));
     runAsync(cancelNotificationsForEvent(id));
+  },
+
+  // Borra todas las rutinas y lo que cuelga de ellas. No toca ajustes.
+  // Cancela primero TODAS las notificaciones programadas: si no, las alarmas
+  // de rutinas ya borradas seguirian sonando.
+  deleteAllRoutines: () => {
+    storage.deleteAllRoutineData();
+    set({events: [], subtasks: [], completions: []});
+    runAsync(cancelAllNotifications());
   },
 
   getEventById: (id) => {

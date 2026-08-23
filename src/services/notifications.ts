@@ -59,7 +59,11 @@ export async function scheduleAlarmsForRoutine(event: RoutineEvent): Promise<voi
         hour: alarmHour,
         minute: alarmMinute,
         label: event.title,
-        repeatDays: [],
+        // Día de repetición en convención JS (0=domingo). Antes iba vacío, así
+        // que si el nativo tenía que recalcular la hora (porque la enviada ya
+        // había pasado) no sabía en qué día debía sonar y la ponía para hoy o
+        // mañana. Es una rutina semanal: se repite ese día de la semana.
+        repeatDays: [(day + 6) % 7],
         soundUri: null,
         soundId: null,
         volume: 80,

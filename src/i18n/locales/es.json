@@ -38,7 +38,18 @@
     "event_count_one": "{{count}} evento",
     "event_count_other": "{{count}} eventos",
     "today_badge": "HOY",
-    "free_day": "Día libre · toca para añadir"
+    "free_day": "Día libre · toca para añadir",
+    "mode_by_day": "Por día",
+    "mode_by_routine": "Por rutina",
+    "no_routines": "No hay rutinas creadas todavía",
+    "no_routines_message": "Crea tu primera rutina y aparecerá aquí con los días en que se repite.",
+    "danger_zone": "Zona de peligro",
+    "delete_all_hint": "Elimina todas las rutinas, sus subtareas y su historial. No se puede deshacer.",
+    "delete_all_title": "Borrar todas las rutinas",
+    "delete_all_confirm": "Borrar todo",
+    "delete_all_message": "Se borrarán {{routines}} rutinas ({{count}} días programados), sus subtareas y su historial de completado.\n\nTus ajustes, idioma y claves de IA se conservan.",
+    "delete_all_sure_title": "¿Seguro?",
+    "delete_all_sure_message": "No hay copia de seguridad. Esto no se puede deshacer."
   },
   "routine": {
     "title": "Título",

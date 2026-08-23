@@ -1,6 +1,6 @@
 // src/screens/EventDetailScreen.tsx
 import React, {useState} from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore, getActiveSubtasks, getArchivedSubtasks, getSubtasksProgress} from '../stores/routinesStore';
@@ -18,7 +18,7 @@ export default function EventDetailScreen() {
   const {t} = useTranslation();
   const theme = useTheme();
   const styles = createStyles(theme);
-  const {getEventById, getSubtasksByEventId, advanceSubtaskStatus, toggleCompletedToday, isCompletedToday} = useRoutinesStore();
+  const {getEventById, getSubtasksByEventId, advanceSubtaskStatus, toggleCompletedToday, isCompletedToday, deleteEvent} = useRoutinesStore();
 
   const event = getEventById(route.params.eventId);
   const subtasks = getSubtasksByEventId(route.params.eventId);
@@ -31,6 +31,22 @@ export default function EventDetailScreen() {
   if (!event) return <ScreenContainer><Text style={styles.notFound}>Event not found</Text></ScreenContainer>;
 
   const categoryConfig = EVENT_CATEGORY_CONFIG[event.categoryRaw as EventCategory];
+
+  // Borra esta rutina y, en cascada, sus subtareas, sus registros de completado
+  // y sus notificaciones programadas (lo hace routinesStore.deleteEvent).
+  const handleDelete = () => {
+    Alert.alert(t('routine.delete'), t('routine.delete_confirm'), [
+      {text: t('common.cancel'), style: 'cancel'},
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => {
+          deleteEvent(event.id);
+          navigation.goBack();
+        },
+      },
+    ]);
+  };
 
   return (
     <ScreenContainer>
@@ -96,6 +112,13 @@ export default function EventDetailScreen() {
       <View style={styles.toolbar}>
         <Button title="✏️ Edit" variant="secondary" onPress={() => navigation.navigate('EventEditor', {eventId: event.id})} style={styles.toolbarButton} />
         <Button title={completed ? '✓ Completed' : '○ Mark Complete'} variant={completed ? 'primary' : 'secondary'} onPress={() => toggleCompletedToday(event.id)} style={styles.toolbarButton} />
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={handleDelete}
+          accessibilityRole="button"
+          accessibilityLabel={t('routine.delete')}>
+          <Text style={styles.deleteButtonText}>🗑</Text>
+        </TouchableOpacity>
       </View>
     </ScreenContainer>
   );
@@ -137,4 +160,13 @@ const createStyles = ({colors, spacing, radius, typography, shadows}: AppTheme) 
     addButtonText: {color: colors.primary, fontWeight: typography.semibold},
     toolbar: {flexDirection: 'row', padding: spacing.lg, gap: spacing.md, backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border},
     toolbarButton: {flex: 1},
+    deleteButton: {
+      width: 48,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.error,
+    },
+    deleteButtonText: {fontSize: typography.lg},
   });

@@ -7,7 +7,6 @@ import android.content.Intent
 import android.os.Build
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
-import java.util.Calendar
 
 class AndroidAlarmModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -89,35 +88,35 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
             val volume = if (config.hasKey("volume")) config.getInt("volume") else 80
             val vibrate = if (config.hasKey("vibrate")) config.getBoolean("vibrate") else true
             val eventId = if (config.hasKey("eventId")) config.getString("eventId") else null
-            val triggerTimeMs = if (config.hasKey("triggerTimeMs")) config.getDouble("triggerTimeMs").toLong() else 0L
+            val requestedTriggerMs =
+                if (config.hasKey("triggerTimeMs")) config.getDouble("triggerTimeMs").toLong() else 0L
 
-            val triggerTime = if (triggerTimeMs > 0) triggerTimeMs else nextTriggerTime(hour, minute)
-
-            val intent = Intent(reactApplicationContext, AlarmTriggerReceiver::class.java).apply {
-                putExtra("alarmId", id)
-                putExtra("label", label)
-                putExtra("soundUri", soundUri)
-                putExtra("soundId", soundId)
-                putExtra("volume", volume)
-                putExtra("vibrate", vibrate)
-                if (eventId != null) putExtra("eventId", eventId)
+            // Dias de repeticion (0 = domingo ... 6 = sabado). Antes se recibian
+            // pero no se usaban: nextTriggerTime() solo miraba hora y minuto, asi
+            // que una alarma de "solo lunes" quedaba armada para hoy o manana.
+            val repeatDays = if (config.hasKey("repeatDays")) {
+                val arr = config.getArray("repeatDays")
+                IntArray(arr?.size() ?: 0) { i -> arr!!.getInt(i) }
+            } else {
+                IntArray(0)
             }
 
-            val pendingIntent = PendingIntent.getBroadcast(
-                reactApplicationContext, id.hashCode(), intent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            val triggerTime = AlarmScheduling.schedule(
+                context = reactApplicationContext,
+                alarmId = id,
+                hour = hour,
+                minute = minute,
+                repeatDays = repeatDays,
+                label = label,
+                soundUri = soundUri,
+                soundId = soundId,
+                volume = volume,
+                vibrate = vibrate,
+                eventId = eventId,
+                requestedTriggerMs = requestedTriggerMs,
             )
 
-            // setAlarmClock() — API correcta para apps tipo despertador, no afectada por Doze
-            val showIntent = PendingIntent.getActivity(
-                reactApplicationContext, id.hashCode(),
-                Intent(reactApplicationContext, AlarmRingingActivity::class.java),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
-            val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
-            alarmManager().setAlarmClock(alarmClockInfo, pendingIntent)
-
+            android.util.Log.i("AndroidAlarmModule", "Alarma $id programada para $triggerTime")
             promise.resolve(id)
         } catch (e: Exception) {
             promise.reject("SCHEDULE_ERROR", e.message, e)
@@ -162,9 +161,13 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
             val triggerTime = System.currentTimeMillis() + snoozeMs
 
             val intent = Intent(reactApplicationContext, AlarmTriggerReceiver::class.java).apply {
-                putExtra("alarmId", alarmId)
+                putExtra(AlarmScheduling.EXTRA_ALARM_ID, alarmId)
                 putExtra("isSnooze", true)
-                if (eventId != null) putExtra("eventId", eventId)
+                // El posponer es de un solo disparo: sin repeatDays el receptor
+                // no intenta re-armarlo. scheduledAt permite descartar la
+                // entrega si llega rancia tras un reinicio.
+                putExtra(AlarmScheduling.EXTRA_SCHEDULED_AT, triggerTime)
+                if (eventId != null) putExtra(AlarmScheduling.EXTRA_EVENT_ID, eventId)
             }
             val pendingIntent = PendingIntent.getBroadcast(
                 reactApplicationContext,
@@ -217,17 +220,5 @@ class AndroidAlarmModule(reactContext: ReactApplicationContext) :
         } catch (e: Exception) {
             promise.reject("INTENT_ERROR", e.message, e)
         }
-    }
-
-    private fun nextTriggerTime(hour: Int, minute: Int): Long {
-        val calendar = Calendar.getInstance()
-        calendar.set(Calendar.HOUR_OF_DAY, hour)
-        calendar.set(Calendar.MINUTE, minute)
-        calendar.set(Calendar.SECOND, 0)
-        calendar.set(Calendar.MILLISECOND, 0)
-        if (calendar.timeInMillis <= System.currentTimeMillis()) {
-            calendar.add(Calendar.DAY_OF_MONTH, 1)
-        }
-        return calendar.timeInMillis
     }
 }

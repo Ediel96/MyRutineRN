@@ -47,6 +47,16 @@
         android:exported="false">
         <intent-filter>
           <action android:name="android.intent.action.BOOT_COMPLETED" />
+          <!-- Arranque directo: llega antes de que el usuario desbloquee -->
+          <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
+          <!-- Arranque rapido de Samsung / HTC: no emiten BOOT_COMPLETED -->
+          <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+          <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+          <!-- Al actualizar la app se pierden las alarmas armadas -->
+          <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+          <!-- El reloj se corrige tras estar el movil apagado un tiempo -->
+          <action android:name="android.intent.action.TIME_SET" />
+          <action android:name="android.intent.action.TIMEZONE_CHANGED" />
         </intent-filter>
       </receiver>
 

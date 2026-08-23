@@ -38,7 +38,18 @@
     "event_count_one": "{{count}} event",
     "event_count_other": "{{count}} events",
     "today_badge": "TODAY",
-    "free_day": "Free day · tap to add"
+    "free_day": "Free day · tap to add",
+    "mode_by_day": "By day",
+    "mode_by_routine": "By routine",
+    "no_routines": "No routines yet",
+    "no_routines_message": "Create your first routine and it will show up here with the days it runs on.",
+    "danger_zone": "Danger zone",
+    "delete_all_hint": "This removes every routine, its subtasks and its history. It cannot be undone.",
+    "delete_all_title": "Delete all routines",
+    "delete_all_confirm": "Delete everything",
+    "delete_all_message": "Deleting {{routines}} routines ({{count}} scheduled days), their subtasks and their completion history.\n\nYour settings, language and AI keys are kept.",
+    "delete_all_sure_title": "Are you sure?",
+    "delete_all_sure_message": "There is no backup. This cannot be undone."
   },
   "routine": {
     "title": "Title",

@@ -5,7 +5,7 @@ import DateTimePicker, {DateTimePickerEvent} from '@react-native-community/datet
 import {useNavigation, useRoute} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
-import {ScreenContainer, Card, TextField, Button} from '../components/ui';
+import {ScreenContainer, Card, TextField, Button, DayChips} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import type {RootStackScreenProps} from '../navigation/types';
 import {EventCategory, WeekDay} from '../types/enums';
@@ -131,13 +131,7 @@ export default function EventEditorScreen() {
         </Card>
         <Card style={styles.field}>
           <Text style={styles.label}>{t('routine.day')}</Text>
-          <View style={styles.chipGroup}>
-            {Object.values(WeekDay).map(d => (
-              <TouchableOpacity key={d} style={[styles.chip, days.includes(d) && styles.chipActive]} onPress={() => toggleDay(d)}>
-                <Text style={[styles.chipText, days.includes(d) && styles.chipTextActive]}>{d.slice(0, 3)}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <DayChips days={days} onToggle={toggleDay} size="md" />
         </Card>
         <Card style={styles.field}>
           <Text style={styles.label}>{t('routine.start_time')} / {t('routine.end_time')}</Text>
@@ -224,7 +218,6 @@ const createStyles = ({colors, spacing, radius, typography}: AppTheme) =>
     multiline: {minHeight: 80, textAlignVertical: 'top'},
     chipGroup: {flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs},
     chip: {paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border},
-    chipActive: {backgroundColor: colors.primary, borderColor: colors.primary},
     chipText: {fontSize: typography.xs + 1, color: colors.textPrimary},
     chipTextActive: {color: colors.white, fontWeight: typography.semibold},
     timeRow: {flexDirection: 'row', alignItems: 'center', gap: spacing.md},

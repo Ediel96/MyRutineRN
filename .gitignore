@@ -77,3 +77,6 @@ yarn-error.log
 # APKs para compartir y credenciales de firma
 dist/
 key.properties
+
+# Backups locales
+_to_delete/

@@ -31,6 +31,7 @@ const KEYS = {
   ALARM_DEFAULT_VIBRATE: 'alarm_default_vibrate',
   ALARM_DEFAULT_SNOOZE_ENABLED: 'alarm_default_snooze_enabled',
   ALARM_DEFAULT_SNOOZE_MINUTES: 'alarm_default_snooze_minutes',
+  WEEK_VIEW_MODE: 'week_view_mode',
 };
 
 // Helper para obtener/guardar arrays JSON
@@ -189,6 +190,17 @@ export function setLanguage(language: string): void {
   storage.set(KEYS.LANGUAGE, language);
 }
 
+// Modo de visualizacion de WeekScreen: 'day' (tarjeta por dia) o 'routine'
+// (lista plana de rutinas). Preferencia de UI, no dato de dominio: por eso
+// vive aqui y no en routinesStore.
+export function getWeekViewMode(): string {
+  return storage.getString(KEYS.WEEK_VIEW_MODE) || 'day';
+}
+
+export function setWeekViewMode(mode: string): void {
+  storage.set(KEYS.WEEK_VIEW_MODE, mode);
+}
+
 export function hasLoadedDefaults(): boolean {
   return storage.getBoolean(KEYS.HAS_LOADED_DEFAULTS) || false;
 }
@@ -219,6 +231,19 @@ export function setAlarmDefaultSnoozeMinutes(value: 5 | 10 | 15 | 30): void {
 }
 
 // ============ Reset ============
+// Borra SOLO los datos de rutinas (eventos, subtareas y registros de
+// completado). A diferencia de resetAllData(), conserva tema, idioma,
+// proveedores de IA y ajustes de alarma.
+//
+// Marca HAS_LOADED_DEFAULTS para que loadData() no vuelva a sembrar las rutinas
+// de ejemplo al detectar la lista vacia.
+export function deleteAllRoutineData(): void {
+  setJSONArray(KEYS.ROUTINE_EVENTS, []);
+  setJSONArray(KEYS.SUBTASKS, []);
+  setJSONArray(KEYS.COMPLETION_RECORDS, []);
+  storage.set(KEYS.HAS_LOADED_DEFAULTS, true);
+}
+
 export function resetAllData(): void {
   storage.clearAll();
 }
