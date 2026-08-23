@@ -231,5 +231,31 @@
   "notifications": {
     "alarm_fallback": "Es hora de: {{title}} · {{schedule}}",
     "reminder_body": "Empieza en {{minutes}} min · {{schedule}}"
+  },
+  "non_negotiables": {
+    "title": "No negociables",
+    "reminder_title": "🎯 ¿Cómo te fue hoy?",
+    "reminder_body_one": "{{count}} no negociable por revisar",
+    "reminder_body_other": "{{count}} no negociables por revisar",
+    "streak_days_one": "{{count}} día",
+    "streak_days_other": "{{count}} días",
+    "empty_title": "Aún no hay no negociables",
+    "empty_cta": "Añade el primero",
+    "add": "Añadir no negociable",
+    "limit_reached": "Máximo {{max}} activos",
+    "recommendation": "Recomendamos entre 3 y 5.",
+    "count_of": "{{current}} de {{max}}",
+    "done": "Cumplido",
+    "missed": "No cumplido",
+    "stats_raw": "{{done}} de {{total}} días",
+    "delete_all": "Eliminar todos los no negociables",
+    "delete_all_hint": "Borra los no negociables, su historial, las estadísticas y la racha. No se puede deshacer.",
+    "delete_all_confirm": "Eliminar todo",
+    "delete_all_sure": "¿Seguro?",
+    "delete_all_sure_message": "No hay copia de seguridad. Perderás la racha y las estadísticas.",
+    "reminder_time": "Hora de repaso",
+    "enable": "Activar no negociables",
+    "deactivate": "Quitar",
+    "deactivate_confirm": "Dejará de aparecer en tu checklist diario. Su historial se conserva."
   }
 }

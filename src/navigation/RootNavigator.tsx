@@ -24,6 +24,8 @@ import PomodoroScreen from '../screens/PomodoroScreen';
 import VoiceCreatorScreen from '../screens/VoiceCreatorScreen';
 import HistoryScreen from '../screens/HistoryScreen';
 import AISettingsScreen from '../screens/AISettingsScreen';
+import NonNegotiablesSettingsScreen from '../screens/NonNegotiablesSettingsScreen';
+import NonNegotiableEditorScreen from '../screens/NonNegotiableEditorScreen';
 import NotificationDiagnosticsScreen from '../screens/NotificationDiagnosticsScreen';
 import LogsScreen from '../screens/LogsScreen';
 import {AlarmListScreen} from '../screens/AlarmListScreen';
@@ -199,6 +201,16 @@ export default function RootNavigator() {
         name="AndroidPermissionsOnboarding"
         component={AndroidPermissionsOnboarding}
         options={{title: 'Permisos'}}
+      />
+      <Stack.Screen
+        name="NonNegotiablesSettings"
+        component={NonNegotiablesSettingsScreen}
+        options={{title: "No Negociables"}}
+      />
+      <Stack.Screen
+        name="NonNegotiableEditor"
+        component={NonNegotiableEditorScreen}
+        options={{title: "No Negociable"}}
       />
     </Stack.Navigator>
   );

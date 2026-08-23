@@ -2,6 +2,7 @@
 // Servicio de almacenamiento MMKV - equivalente a SwiftData/SwiftData
 
 import {createMMKV} from 'react-native-mmkv';
+import type {NonNegotiable, NonNegotiableRecord} from '../types/nonNegotiable';
 import type {
   RoutineEvent,
   Subtask,
@@ -32,6 +33,11 @@ const KEYS = {
   ALARM_DEFAULT_SNOOZE_ENABLED: 'alarm_default_snooze_enabled',
   ALARM_DEFAULT_SNOOZE_MINUTES: 'alarm_default_snooze_minutes',
   WEEK_VIEW_MODE: 'week_view_mode',
+  NON_NEGOTIABLES: 'non_negotiables',
+  NON_NEGOTIABLE_RECORDS: 'non_negotiable_records',
+  NN_ENABLED: 'nn_enabled',
+  NN_HOUR: 'nn_hour',
+  NN_MINUTE: 'nn_minute',
 };
 
 // Helper para obtener/guardar arrays JSON
@@ -242,6 +248,53 @@ export function deleteAllRoutineData(): void {
   setJSONArray(KEYS.SUBTASKS, []);
   setJSONArray(KEYS.COMPLETION_RECORDS, []);
   storage.set(KEYS.HAS_LOADED_DEFAULTS, true);
+}
+
+// ============ No Negociables ============
+// Ver docs/no-negociables.md. Borrado independiente del de rutinas a propósito:
+// son entidades distintas y deleteAllRoutineData() no debe tocarlas.
+
+export function getAllNonNegotiables(): NonNegotiable[] {
+  return getJSONArray<NonNegotiable>(KEYS.NON_NEGOTIABLES);
+}
+
+export function saveAllNonNegotiables(items: NonNegotiable[]): void {
+  setJSONArray(KEYS.NON_NEGOTIABLES, items);
+}
+
+export function getAllNonNegotiableRecords(): NonNegotiableRecord[] {
+  return getJSONArray<NonNegotiableRecord>(KEYS.NON_NEGOTIABLE_RECORDS);
+}
+
+export function saveAllNonNegotiableRecords(records: NonNegotiableRecord[]): void {
+  setJSONArray(KEYS.NON_NEGOTIABLE_RECORDS, records);
+}
+
+/** Borra los no negociables Y su historial. Irreversible. */
+export function deleteAllNonNegotiableData(): void {
+  setJSONArray(KEYS.NON_NEGOTIABLES, []);
+  setJSONArray(KEYS.NON_NEGOTIABLE_RECORDS, []);
+}
+
+export function getNonNegotiablesEnabled(): boolean {
+  return storage.getBoolean(KEYS.NN_ENABLED) ?? false;
+}
+
+export function setNonNegotiablesEnabled(value: boolean): void {
+  storage.set(KEYS.NN_ENABLED, value);
+}
+
+export function getNonNegotiablesHour(): number {
+  return storage.getNumber(KEYS.NN_HOUR) ?? 21;
+}
+
+export function getNonNegotiablesMinute(): number {
+  return storage.getNumber(KEYS.NN_MINUTE) ?? 0;
+}
+
+export function setNonNegotiablesTime(hour: number, minute: number): void {
+  storage.set(KEYS.NN_HOUR, hour);
+  storage.set(KEYS.NN_MINUTE, minute);
 }
 
 export function resetAllData(): void {

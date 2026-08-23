@@ -231,5 +231,31 @@
   "notifications": {
     "alarm_fallback": "Time for: {{title}} · {{schedule}}",
     "reminder_body": "Starts in {{minutes}} min · {{schedule}}"
+  },
+  "non_negotiables": {
+    "title": "Non-negotiables",
+    "reminder_title": "🎯 How did today go?",
+    "reminder_body_one": "{{count}} non-negotiable to review",
+    "reminder_body_other": "{{count}} non-negotiables to review",
+    "streak_days_one": "{{count}} day",
+    "streak_days_other": "{{count}} days",
+    "empty_title": "No non-negotiables yet",
+    "empty_cta": "Add your first one",
+    "add": "Add non-negotiable",
+    "limit_reached": "Maximum {{max}} active",
+    "recommendation": "We recommend between 3 and 5.",
+    "count_of": "{{current}} of {{max}}",
+    "done": "Done",
+    "missed": "Not done",
+    "stats_raw": "{{done}} of {{total}} days",
+    "delete_all": "Delete all non-negotiables",
+    "delete_all_hint": "Deletes every non-negotiable, its history, stats and streak. Cannot be undone.",
+    "delete_all_confirm": "Delete everything",
+    "delete_all_sure": "Are you sure?",
+    "delete_all_sure_message": "There is no backup. Your streak and stats will be lost.",
+    "reminder_time": "Review time",
+    "enable": "Enable non-negotiables",
+    "deactivate": "Remove",
+    "deactivate_confirm": "It stops appearing in your daily checklist. Its history is kept."
   }
 }

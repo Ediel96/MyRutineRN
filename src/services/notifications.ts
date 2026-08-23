@@ -16,6 +16,7 @@ import type {EventCategory} from '../types/enums';
 import type {RoutineEvent, PendingNotification} from '../types';
 
 const CHANNEL_ID = 'myroutine-alarms';
+const NN_NOTIFICATION_ID = 'non_negotiables_daily';
 
 // Initialize notification channel (Android)
 export async function setupNotificationChannel(): Promise<void> {
@@ -193,6 +194,64 @@ export async function scheduleReminderForRoutine(event: RoutineEvent): Promise<v
       repeatFrequency: RepeatFrequency.WEEKLY,
     } as TimestampTrigger,
   );
+}
+
+// ============ No Negociables ============
+// Ver docs/no-negociables.md sección 4.2.
+
+/**
+ * Recordatorio diario para repasar los no negociables.
+ *
+ * Es el primer sitio de la app que usa RepeatFrequency.DAILY: todo lo demás
+ * repite WEEKLY. Se usa notifee y no AlarmManager a propósito — esto es un
+ * aviso discreto, no un despertador con sonido en bucle y pantalla completa.
+ *
+ * La hora es solo un recordatorio: el usuario puede responder en cualquier
+ * momento del día (P4).
+ */
+export async function scheduleNonNegotiablesReminder(
+  hour: number,
+  minute: number,
+  activeCount: number,
+): Promise<void> {
+  await cancelNonNegotiablesReminder();
+
+  // P8: sin activos no se programa nada.
+  if (activeCount <= 0) return;
+
+  const trigger = new Date();
+  trigger.setHours(hour, minute, 0, 0);
+  // Si la hora de hoy ya pasó, la primera aparición es mañana. Un timestamp
+  // pasado dispararía la notificación al instante.
+  if (trigger.getTime() <= Date.now()) {
+    trigger.setDate(trigger.getDate() + 1);
+  }
+
+  await notifee.createTriggerNotification(
+    {
+      id: NN_NOTIFICATION_ID,
+      title: i18n.t('non_negotiables.reminder_title'),
+      body: i18n.t('non_negotiables.reminder_body', {count: activeCount}),
+      android: {
+        channelId: CHANNEL_ID,
+        importance: AndroidImportance.DEFAULT,
+        pressAction: {id: 'default'},
+      },
+      ios: {
+        interruptionLevel: 'active',
+      },
+      data: {type: 'non_negotiables'},
+    },
+    {
+      type: TriggerType.TIMESTAMP,
+      timestamp: trigger.getTime(),
+      repeatFrequency: RepeatFrequency.DAILY,
+    } as TimestampTrigger,
+  );
+}
+
+export async function cancelNonNegotiablesReminder(): Promise<void> {
+  await notifee.cancelNotification(NN_NOTIFICATION_ID).catch(() => {});
 }
 
 // Cancel all notifications for an event

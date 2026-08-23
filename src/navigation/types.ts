@@ -30,6 +30,8 @@ export type RootStackParamList = {
   AlarmEditor: {alarmId?: string};
   AlarmRinging: {alarmId: string; eventId?: string};
   AndroidPermissionsOnboarding: undefined;
+  NonNegotiablesSettings: undefined;
+  NonNegotiableEditor: {id?: string};
 };
 
 // Screen props types

@@ -231,5 +231,31 @@
   "notifications": {
     "alarm_fallback": "C'est l'heure de : {{title}} · {{schedule}}",
     "reminder_body": "Commence dans {{minutes}} min · {{schedule}}"
+  },
+  "non_negotiables": {
+    "title": "Non négociables",
+    "reminder_title": "🎯 Comment était ta journée ?",
+    "reminder_body_one": "{{count}} non négociable à passer en revue",
+    "reminder_body_other": "{{count}} non négociables à passer en revue",
+    "streak_days_one": "{{count}} jour",
+    "streak_days_other": "{{count}} jours",
+    "empty_title": "Aucun non négociable",
+    "empty_cta": "Ajoutez le premier",
+    "add": "Ajouter un non négociable",
+    "limit_reached": "Maximum {{max}} actifs",
+    "recommendation": "Nous recommandons entre 3 et 5.",
+    "count_of": "{{current}} sur {{max}}",
+    "done": "Fait",
+    "missed": "Non fait",
+    "stats_raw": "{{done}} sur {{total}} jours",
+    "delete_all": "Supprimer tous les non négociables",
+    "delete_all_hint": "Supprime les non négociables, leur historique, les stats et la série. Irréversible.",
+    "delete_all_confirm": "Tout supprimer",
+    "delete_all_sure": "Confirmer ?",
+    "delete_all_sure_message": "Aucune sauvegarde. Vous perdrez la série et les statistiques.",
+    "reminder_time": "Heure de revue",
+    "enable": "Activer les non négociables",
+    "deactivate": "Retirer",
+    "deactivate_confirm": "Il disparaîtra de votre checklist. Son historique est conservé."
   }
 }

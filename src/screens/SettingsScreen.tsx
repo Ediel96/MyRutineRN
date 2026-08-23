@@ -139,6 +139,12 @@ export default function SettingsScreen({}: Props) {
             onPress={() => navigation.navigate('AISettings')}
           />
           <SettingsNavRow
+            icon="🎯"
+            iconBg={theme.colors.accentWarm}
+            label={t('non_negotiables.title')}
+            onPress={() => navigation.navigate('NonNegotiablesSettings')}
+          />
+          <SettingsNavRow
             icon="🔔"
             iconBg={theme.colors.accentWarm}
             label={t('settings.notification_diagnostics')}

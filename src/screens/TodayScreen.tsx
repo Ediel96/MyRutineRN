@@ -9,6 +9,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useTranslation} from 'react-i18next';
 import {useRoutinesStore} from '../stores/routinesStore';
 import TodayEventRow from '../components/TodayEventRow';
+import NonNegotiablesCard from '../components/NonNegotiablesCard';
 import {ScreenContainer, GradientView, SkeletonRow} from '../components/ui';
 import {useTheme, AppTheme} from '../theme/useTheme';
 import type {TabScreenProps} from '../navigation/types';
@@ -89,6 +90,8 @@ export default function TodayScreen({}: Props) {
             </View>
           </View>
         </View>
+
+        <NonNegotiablesCard />
 
         {isLoading ? (
           <View style={styles.eventsList}>
