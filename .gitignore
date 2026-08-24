@@ -80,3 +80,4 @@ key.properties
 
 # Backups locales
 _to_delete/
+ios/.pods-stamp

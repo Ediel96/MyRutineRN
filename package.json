@@ -15,7 +15,7 @@
     "ios:reset": "cd ios && npx pod-install && xcodebuild -alltargets clean || true && cd .. && npm run start:reset",
     "ios:clean-install": "npm run clean:node && cd ios && npx pod-install && cd .. && npm run ios",
     "test": "jest",
-    "android:fast": "react-native run-android --active-arch-only",
+    "android:fast": "bash scripts/android.sh fast",
     "android:apk": "bash scripts/android.sh apk",
     "android:install": "bash scripts/android.sh install",
     "device:doctor": "bash scripts/android.sh doctor",
@@ -29,7 +29,14 @@
     "android:clean": "bash scripts/android.sh clean",
     "device:list": "bash scripts/android.sh devices",
     "android:install:release": "bash scripts/android.sh install release",
-    "android:share": "bash scripts/android.sh share"
+    "android:share": "bash scripts/android.sh share",
+    "ios:fast": "bash scripts/ios.sh fast",
+    "ios:install": "bash scripts/ios.sh install",
+    "ios:devices": "bash scripts/ios.sh devices",
+    "ios:pods": "bash scripts/ios.sh pods",
+    "ios:doctor": "bash scripts/ios.sh doctor",
+    "android:reinstall": "bash scripts/android.sh reinstall",
+    "android:reinstall:release": "bash scripts/android.sh reinstall release"
   },
   "dependencies": {
     "@howljs/calendar-kit": "^2.5.6",
@@ -69,6 +76,7 @@
     "@react-native-community/cli-platform-ios": "20.1.0",
     "@react-native/babel-preset": "0.86.0",
     "@react-native/eslint-config": "0.86.0",
+    "@react-native/jest-preset": "^0.86.0",
     "@react-native/metro-config": "0.86.0",
     "@react-native/typescript-config": "0.86.0",
     "@types/jest": "^29.5.13",

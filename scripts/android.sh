@@ -9,6 +9,7 @@
 #   npm run android:apk       -> compila el APK sin instalarlo
 #   npm run android:install   -> instala el APK ya compilado
 #   npm run android:clean     -> borra cache de build (en vez de gradlew clean)
+#   npm run android:reinstall -> desinstala + instala (refresca el icono)
 #   npm run device:doctor     -> diagnostico general
 #
 # Ver README.md para la explicacion de cada uno.
@@ -205,6 +206,43 @@ detect_abi() {
   echo "${abi:-arm64-v8a}"
 }
 
+# Compila e instala solo para la arquitectura del dispositivo conectado.
+#
+# Antes de compilar comprueba el espacio: descubrir que no cabe DESPUES de
+# esperar el build es la forma mas cara de enterarse, y ya ha pasado dos veces
+# (una en el movil, otra en el emulador).
+cmd_fast() {
+  require_device
+
+  local abi; abi=$(detect_abi)
+  local libre; libre=$(free_mb)
+
+  # Estimacion: el APK de una sola ABI ronda los 65 MB, y Android necesita
+  # ~3x libre porque extrae y optimiza el codigo durante la instalacion.
+  local necesario=200
+  if [ -f "$APK_DEBUG" ]; then
+    necesario=$(( ($(wc -c < "$APK_DEBUG") / 1048576) * 3 ))
+  fi
+
+  echo "Dispositivo: $TARGET  ($abi)"
+  echo "Espacio libre: ${libre} MB   |   necesario aprox: ${necesario} MB"
+
+  if [ "$libre" -lt "$necesario" ]; then
+    echo >&2
+    echo "No hay espacio suficiente para instalar. Libera antes de compilar:" >&2
+    echo "  npm run device:cache    (inofensivo, prueba esto primero)" >&2
+    echo "  npm run device:free     (tambien desinstala; borra tus rutinas)" >&2
+    echo >&2
+    echo "Si el emulador se queda corto a menudo, amplia su disco:" >&2
+    echo "  Android Studio > Device Manager > Edit > Show Advanced Settings" >&2
+    echo "  > Internal Storage -> 8192 MB" >&2
+    exit 1
+  fi
+
+  echo
+  npx react-native run-android --active-arch-only
+}
+
 cmd_apk() {
   local abi; abi=$(detect_abi)
   echo "Compilando APK de DEBUG para $abi..."
@@ -336,6 +374,41 @@ cmd_size() {
     }'
 }
 
+# Reinstalacion limpia para forzar el refresco del ICONO.
+#
+# Android cachea el icono del lanzador de forma agresiva: si reemplazas los
+# mipmap y reinstalas por encima, el lanzador puede seguir mostrando el
+# anterior durante horas. Desinstalar borra esa cache.
+#
+# OJO: desinstalar borra las rutinas guardadas (MMKV local, sin backend).
+cmd_reinstall() {
+  require_device
+  local apk="$APK_DEBUG"
+  [ "${2:-}" = "release" ] && apk="$APK_RELEASE"
+
+  [ -f "$apk" ] || {
+    echo "No hay APK compilado en $apk" >&2
+    echo "Compila antes: npm run android:apk  (o android:release)" >&2
+    exit 1
+  }
+
+  echo "Desinstalando para limpiar la cache del icono..."
+  echo "AVISO: se borran las rutinas guardadas. No hay copia de seguridad."
+  adbx uninstall "$APP_ID" >/dev/null 2>&1 || echo "  (no estaba instalada)"
+
+  echo "Instalando $apk"
+  adbx install "$apk"
+
+  echo "Abriendo la app..."
+  adbx shell monkey -p "$APP_ID" -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+
+  echo
+  echo "Si el lanzador SIGUE mostrando el icono viejo (pasa en Samsung One UI),"
+  echo "es cache del propio lanzador, no de la app. Prueba en este orden:"
+  echo "  1. adb shell pm clear com.sec.android.app.launcher   (One UI)"
+  echo "  2. Reinicia el movil"
+}
+
 cmd_doctor() {
   require_adb
   echo "adb: $ADB"
@@ -360,12 +433,14 @@ case "${1:-}" in
   install)   cmd_install "$@" ;;
   size)      cmd_size "$@" ;;
   clean)     cmd_clean ;;
+  reinstall) cmd_reinstall "$@" ;;
+  fast)      cmd_fast ;;
   devices)   cmd_devices ;;
   release)   cmd_release ;;
   share)     cmd_share ;;
   doctor)    cmd_doctor ;;
   *)
-    echo "Uso: scripts/android.sh {devices|space|cache|uninstall|free|apk|release|share|install|size|clean|doctor}" >&2
+    echo "Uso: scripts/android.sh {devices|space|cache|uninstall|free|fast|apk|release|share|install|reinstall|size|clean|doctor}" >&2
     echo "Normalmente se usa via npm; ver README.md" >&2
     exit 1 ;;
 esac
